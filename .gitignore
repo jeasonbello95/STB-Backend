@@ -1,0 +1,23 @@
+# Logs
+logs/
+*.log
+
+# Local WP server configs
+conf/
+
+# WordPress cache, upgrades and uploads
+app/public/wp-content/cache/
+app/public/wp-content/upgrade/
+app/public/wp-content/backup-db/
+app/public/wp-content/uploads/
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+!.env.example
