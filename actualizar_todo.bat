@@ -18,12 +18,11 @@ echo [1/2] Actualizando Frontend (STB-Academy)...
 echo ------------------------------------------------------
 if exist "%ROOT_DIR%STB-Academy" (
     pushd "%ROOT_DIR%STB-Academy"
-    git pull origin main
+    git pull --rebase --autostash origin main
     if !ERRORLEVEL! equ 0 (
         echo.
         echo [OK] Frontend actualizado correctamente.
     ) else (
-        echo.
         echo [ERROR] No se pudo actualizar Frontend. Revisa tu conexion o estado de git.
     )
     popd
@@ -36,12 +35,11 @@ echo [2/2] Actualizando Backend (STB-Backend)...
 echo ------------------------------------------------------
 if exist "%ROOT_DIR%STB-Backend" (
     pushd "%ROOT_DIR%STB-Backend"
-    git pull origin main
+    git pull --rebase --autostash origin main
     if !ERRORLEVEL! equ 0 (
         echo.
         echo [OK] Backend actualizado correctamente.
     ) else (
-        echo.
         echo [ERROR] No se pudo actualizar Backend. Revisa tu conexion o estado de git.
     )
     popd
