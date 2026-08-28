@@ -1,0 +1,11 @@
+{
+  "name": "stb-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "STB Academy WordPress Backend",
+  "scripts": {
+    "subir": "git add . && git commit -m \"Actualizacion backend\" && git push origin main",
+    "actualizar": "git pull origin main",
+    "crear-repo": "gh repo create STB-Backend --source=. --public --push"
+  }
+}
