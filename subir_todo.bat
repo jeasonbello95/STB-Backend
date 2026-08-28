@@ -24,14 +24,15 @@ echo ------------------------------------------------------
 if exist "%ROOT_DIR%STB-Academy" (
     pushd "%ROOT_DIR%STB-Academy"
     git add .
-    git commit -m "%MSG%"
+    git commit -m "%MSG%" >nul 2>&1
+    git pull --rebase origin main
     git push origin main
     if !ERRORLEVEL! equ 0 (
         echo.
-        echo [OK] Frontend subido correctamente.
+        echo [OK] Frontend sincronizado y subido correctamente.
     ) else (
         echo.
-        echo [AVISO] No se pudo subir Frontend o no habia cambios nuevos.
+        echo [AVISO] Hubo un problema al subir Frontend.
     )
     popd
 ) else (
@@ -44,14 +45,15 @@ echo ------------------------------------------------------
 if exist "%ROOT_DIR%STB-Backend" (
     pushd "%ROOT_DIR%STB-Backend"
     git add .
-    git commit -m "%MSG%"
+    git commit -m "%MSG%" >nul 2>&1
+    git pull --rebase origin main
     git push origin main
     if !ERRORLEVEL! equ 0 (
         echo.
-        echo [OK] Backend subido correctamente.
+        echo [OK] Backend sincronizado y subido correctamente.
     ) else (
         echo.
-        echo [AVISO] No se pudo subir Backend o no habia cambios nuevos.
+        echo [AVISO] Hubo un problema al subir Backend.
     )
     popd
 ) else (
