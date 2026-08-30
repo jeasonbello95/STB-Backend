@@ -9,6 +9,22 @@ conf/
 app/public/wp-content/cache/
 app/public/wp-content/upgrade/
 app/public/wp-content/backup-db/
+app/public/wp-content/upgrade-temp-backup/
+app/public/wp-content/advanced-cache.php
+app/public/wp-content/object-cache.php
+app/public/wp-content/wp-cache-config.php
+
+# Backups de plugins de migracion (ai1wm, wpvivid)
+app/public/wp-content/ai1wm-backups/
+app/public/wp-content/wpvividbackups/
+app/public/wp-content/wpvivid_staging/
+
+# Config local de WordPress (credenciales/salts por maquina)
+app/public/wp-config.php
+app/public/local-xdebuginfo.php
+
+# Config generada por Local by Flywheel (rutas de esta maquina)
+app/.envrc
 
 # OS and Editor files
 .DS_Store

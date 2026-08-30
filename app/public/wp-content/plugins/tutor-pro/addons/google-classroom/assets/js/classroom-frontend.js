@@ -1,0 +1,10 @@
+(()=>{var t={};// The module cache
+var e={};// The require function
+function r(a){// Check if module is in cache
+var o=e[a];if(o!==undefined){return o.exports}// Create a new module (and put it into the cache)
+var n=e[a]={exports:{}};// Execute the module function
+t[a](n,n.exports,r);// Return the exports of the module
+return n.exports}// webpack/runtime/rspack_version
+(()=>{r.rv=()=>"1.6.5"})();// webpack/runtime/rspack_unique_id
+(()=>{r.ruid="bundler=rspack@1.6.5"})();window.jQuery(document).ready(function(t){var e=function t(t,e){t.prop("disabled",!e);!e?t.addClass("is-loading"):t.removeClass("is-loading")};// Handle password set interface after auto registration
+t("#tutor-gc-student-password-set button").click(function(){var r=t(this);var a=r.parent().parent();var o=a.find('[name="password-1"]').val();var n=a.find('[name="password-2"]').val();var s=a.find('[name="token"]').val();if(!o||!n||o!==n){alert("Invalid Password");return}e(r,false);t.ajax({url:window._tutorobject.ajaxurl,data:{action:"tutor_gc_student_set_password",token:s,password:o},type:"POST",success:function t(t){window.location.replace(window._tutorobject.tutor_frontend_dashboard_url)},error:function t(){e(r,true);alert("Request Failed.")}})});/* Load more stream */t("[tutor-gc-stream-loader]").click(function(e){e.preventDefault();var r=t(this);var a=r.data("next_token");var o=r.data("course_id");t.ajax({url:window._tutorobject.ajaxurl,type:"POST",data:{next_token:a,action:"tutor_gc_load_more_stream",course_id:o},beforeSend:function t(){r.addClass("is-loading")},success:function e(e){try{e=JSON.parse(e)}catch(t){}r.removeClass("is-loading");if(typeof e=="object"){if(!e.html||/\S+/.test(e.html)==false){r.remove();return}r.data("next_token",e.next_token);t("[tutor-gc-streams]").append(e.html);!e.next_token?r.remove():0}},error:function t(){r.removeClass("is-loading")}})})})})();
