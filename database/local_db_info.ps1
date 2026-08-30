@@ -6,15 +6,17 @@ param(
 $ErrorActionPreference = 'Stop'
 
 function Write-Result {
-    param([string]$Port, [string]$Bin, [string]$Domain)
+    param([string]$Port, [string]$Bin, [string]$Domain, [string]$Php, [string]$PhpExt)
     Write-Output ("PORT=" + $Port)
     Write-Output ("BIN=" + $Bin)
     Write-Output ("DOMAIN=" + $Domain)
+    Write-Output ("PHP=" + $Php)
+    Write-Output ("PHP_EXT=" + $PhpExt)
 }
 
 $sitesPath = Join-Path $env:APPDATA 'Local\sites.json'
 if (-not (Test-Path -LiteralPath $sitesPath)) {
-    Write-Result '' '' ''
+    Write-Result '' '' '' '' ''
     exit 1
 }
 
@@ -24,7 +26,7 @@ foreach ($p in $sites.PSObject.Properties) {
     if ($p.Value.name -eq $SiteName) { $site = $p.Value; break }
 }
 if (-not $site) {
-    Write-Result '' '' ''
+    Write-Result '' '' '' '' ''
     exit 1
 }
 
@@ -38,7 +40,7 @@ if ($site.services -and $site.services.mysql) {
     }
 }
 if (-not $mysql) {
-    Write-Result '' '' ([string]$site.domain)
+    Write-Result '' '' ([string]$site.domain) '' ''
     exit 1
 }
 
@@ -70,5 +72,24 @@ if (Test-Path -LiteralPath $servicesDir) {
     }
 }
 
-Write-Result $port $binDir ([string]$site.domain)
+# Binario PHP de Local (para el search-replace de dominio sobre el contenido)
+$phpExe = ''
+$phpExt = ''
+if (Test-Path -LiteralPath $servicesDir) {
+    $phpDirs = Get-ChildItem -LiteralPath $servicesDir -Directory -Filter 'php-*' -ErrorAction SilentlyContinue |
+               Sort-Object Name -Descending
+    foreach ($d in $phpDirs) {
+        foreach ($sub in @('bin\win64', 'bin\win32')) {
+            $exe = Join-Path $d.FullName (Join-Path $sub 'php.exe')
+            if (Test-Path -LiteralPath $exe) {
+                $phpExe = $exe
+                $phpExt = Join-Path $d.FullName (Join-Path $sub 'ext')
+                break
+            }
+        }
+        if ($phpExe) { break }
+    }
+}
+
+Write-Result $port $binDir ([string]$site.domain) $phpExe $phpExt
 exit 0

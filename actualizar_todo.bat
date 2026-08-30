@@ -133,6 +133,17 @@ if defined LOCAL_SITE (
                 "!BIN!\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot local < "%DB_DUMP%"
                 set "rc=!ERRORLEVEL!"
                 if !rc! equ 0 (
+                    rem --- [BD] Reemplazo de dominio en todo el contenido (antes de fijar siteurl/home) ---
+                    if defined PHP if defined PHP_EXT (
+                        if exist "%ROOT_DIR%STB-Backend\database\search_replace_db.php" (
+                            echo [BD] Reemplazando URLs del dominio anterior por !DOMAIN! en todas las tablas...
+                            "!PHP!" -d "extension_dir=!PHP_EXT!" -d "extension=mysqli" "%ROOT_DIR%STB-Backend\database\search_replace_db.php" --host=127.0.0.1 --port=!PORT! --user=root --pass=root --db=local --new=!DOMAIN!
+                        ) else (
+                            echo [AVISO] No se encontro database\search_replace_db.php. Se omite el reemplazo de URLs.
+                        )
+                    ) else (
+                        echo [AVISO] No se pudo localizar PHP de Local. Se omite el reemplazo de URLs en contenido.
+                    )
                     if defined DOMAIN (
                         "!BIN!\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot local -e "UPDATE wp_options SET option_value='http://!DOMAIN!' WHERE option_name='home' OR option_name='siteurl';"
                     )
