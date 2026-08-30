@@ -90,7 +90,7 @@ if defined LOCAL_SITE (
         if defined BIN if defined PORT (
             if not exist "%ROOT_DIR%STB-Backend\database" mkdir "%ROOT_DIR%STB-Backend\database"
             echo [BD] Exportando base de datos WordPress...
-            "%BIN%\mysqldump.exe" -h 127.0.0.1 -P !PORT! -u root -proot --no-tablespaces --single-transaction --routines local > "%DB_DUMP%"
+            "!BIN!\mysqldump.exe" -h 127.0.0.1 -P !PORT! -u root -proot --no-tablespaces --single-transaction --routines local > "%DB_DUMP%"
             set "rc=!ERRORLEVEL!"
             if !rc! equ 0 (
                 echo [OK] Base de datos exportada hacia database\wp-db.sql.

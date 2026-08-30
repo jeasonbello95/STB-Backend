@@ -129,12 +129,12 @@ if defined LOCAL_SITE (
             if exist "%DB_DUMP%" (
                 echo [BD] Importando base de datos WordPress...
                 echo   Se recreara la base 'local' a partir del dump del repo.
-                "%BIN%\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot -e "DROP DATABASE IF EXISTS local; CREATE DATABASE local;"
-                "%BIN%\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot local < "%DB_DUMP%"
+                "!BIN!\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot -e "DROP DATABASE IF EXISTS local; CREATE DATABASE local;"
+                "!BIN!\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot local < "%DB_DUMP%"
                 set "rc=!ERRORLEVEL!"
                 if !rc! equ 0 (
                     if defined DOMAIN (
-                        "%BIN%\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot local -e "UPDATE wp_options SET option_value='http://!DOMAIN!' WHERE option_name='home' OR option_name='siteurl';"
+                        "!BIN!\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot local -e "UPDATE wp_options SET option_value='http://!DOMAIN!' WHERE option_name='home' OR option_name='siteurl';"
                     )
                     echo [OK] Base de datos importada correctamente.
                 ) else (
