@@ -45,13 +45,13 @@ if not defined LOCAL_SITE (
 
 if defined LOCAL_SITE (
     set "LOCAL_PUBLIC=%LOCAL_SITE%\app\public"
-    echo [SITIO] WordPress Local detectado: %LOCAL_PUBLIC%
+    echo [SITIO] WordPress Local detectado: !LOCAL_PUBLIC!
 ) else (
     echo [AVISO] No se encontro el sitio Local automaticamente.
     echo         El auto-detect solo busca stbacademylocal / stbacademy.
     echo         Si tu sitio tiene otro nombre, crea sync_config.bat en la
     echo         carpeta raiz del proyecto (donde estan STB-Academy y
-    echo         STB-Backend) con la linea:
+    echo         STB-Backend^) con la linea:
     echo             set "LOCAL_SITE=C:\Ruta\a\tu\Local Sites\mi_sitio"
     set "LOCAL_PUBLIC="
 )
@@ -73,12 +73,38 @@ if defined LOCAL_PUBLIC (
         /NFL /NDL /NJH /NJS /NC /NS /NP
     set "rc=!ERRORLEVEL!"
     if !rc! GEQ 8 (
-        echo [AVISO] La copia de WordPress fallo (codigo !rc!). Se omite y se continua.
+        echo [AVISO] La copia de WordPress fallo (codigo !rc!^). Se omite y se continua.
     ) else (
         echo [OK] WordPress sincronizado hacia el repo.
     )
 ) else (
     echo [AVISO] Se omite la copia de WordPress: no hay sitio Local detectado.
+)
+
+rem ---- [BD] Respaldar base de datos de WordPress ----
+set "DB_DUMP=%ROOT_DIR%STB-Backend\database\wp-db.sql"
+if defined LOCAL_SITE (
+    for %%F in ("%LOCAL_SITE%") do set "SITE_NAME=%%~nxF"
+    if exist "%ROOT_DIR%STB-Backend\database\local_db_info.ps1" (
+        for /f "usebackq delims=" %%L in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT_DIR%STB-Backend\database\local_db_info.ps1" -SiteName "!SITE_NAME!"`) do set "%%L"
+        if defined BIN if defined PORT (
+            if not exist "%ROOT_DIR%STB-Backend\database" mkdir "%ROOT_DIR%STB-Backend\database"
+            echo [BD] Exportando base de datos WordPress...
+            "%BIN%\mysqldump.exe" -h 127.0.0.1 -P !PORT! -u root -proot --no-tablespaces --single-transaction --routines local > "%DB_DUMP%"
+            set "rc=!ERRORLEVEL!"
+            if !rc! equ 0 (
+                echo [OK] Base de datos exportada hacia database\wp-db.sql.
+            ) else (
+                echo [AVISO] Fallo al exportar la base de datos (codigo !rc!^). Se omite.
+            )
+        ) else (
+            echo [AVISO] No se pudo localizar MySQL Local. Se omite el respaldo de BD.
+        )
+    ) else (
+        echo [AVISO] Falta STB-Backend\database\local_db_info.ps1. Se omite el respaldo de BD.
+    )
+) else (
+    echo [AVISO] Sin sitio Local; se omite el respaldo de BD.
 )
 echo.
 

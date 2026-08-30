@@ -43,13 +43,13 @@ if not defined LOCAL_SITE (
 
 if defined LOCAL_SITE (
     set "LOCAL_PUBLIC=%LOCAL_SITE%\app\public"
-    echo [SITIO] WordPress Local detectado: %LOCAL_PUBLIC%
+    echo [SITIO] WordPress Local detectado: !LOCAL_PUBLIC!
 ) else (
     echo [AVISO] No se encontro el sitio Local automaticamente.
     echo         El auto-detect solo busca stbacademylocal / stbacademy.
     echo         Se omitira la copia de WordPress hacia Local. Si tu sitio
     echo         tiene otro nombre, crea sync_config.bat en la carpeta raiz
-    echo         del proyecto (donde estan STB-Academy y STB-Backend) con:
+    echo         del proyecto (donde estan STB-Academy y STB-Backend^) con:
     echo             set "LOCAL_SITE=C:\Ruta\a\tu\Local Sites\mi_sitio"
     set "LOCAL_PUBLIC="
 )
@@ -110,13 +110,47 @@ if defined LOCAL_PUBLIC (
             /NFL /NDL /NJH /NJS /NC /NS /NP
         set "rc=!ERRORLEVEL!"
         if !rc! GEQ 8 (
-            echo [AVISO] La copia de WordPress fallo (codigo !rc!). Se omite y se continua.
+            echo [AVISO] La copia de WordPress fallo (codigo !rc!^). Se omite y se continua.
         ) else (
             echo [OK] WordPress sincronizado desde el repo hacia Local.
         )
     )
 ) else (
     echo [AVISO] Se omite la copia hacia Local: no hay sitio Local detectado.
+)
+
+rem ---- [BD] Importar base de datos de WordPress ----
+set "DB_DUMP=%ROOT_DIR%STB-Backend\database\wp-db.sql"
+if defined LOCAL_SITE (
+    for %%F in ("%LOCAL_SITE%") do set "SITE_NAME=%%~nxF"
+    if exist "%ROOT_DIR%STB-Backend\database\local_db_info.ps1" (
+        for /f "usebackq delims=" %%L in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT_DIR%STB-Backend\database\local_db_info.ps1" -SiteName "!SITE_NAME!"`) do set "%%L"
+        if defined BIN if defined PORT (
+            if exist "%DB_DUMP%" (
+                echo [BD] Importando base de datos WordPress...
+                echo   Se recreara la base 'local' a partir del dump del repo.
+                "%BIN%\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot -e "DROP DATABASE IF EXISTS local; CREATE DATABASE local;"
+                "%BIN%\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot local < "%DB_DUMP%"
+                set "rc=!ERRORLEVEL!"
+                if !rc! equ 0 (
+                    if defined DOMAIN (
+                        "%BIN%\mysql.exe" -h 127.0.0.1 -P !PORT! -u root -proot local -e "UPDATE wp_options SET option_value='http://!DOMAIN!' WHERE option_name='home' OR option_name='siteurl';"
+                    )
+                    echo [OK] Base de datos importada correctamente.
+                ) else (
+                    echo [AVISO] Fallo al importar la base de datos (codigo !rc!^). Revisa el dump.
+                )
+            ) else (
+                echo [AVISO] No existe database\wp-db.sql. Se omite la importacion de BD.
+            )
+        ) else (
+            echo [AVISO] No se pudo localizar MySQL Local. Se omite la importacion de BD.
+        )
+    ) else (
+        echo [AVISO] Falta STB-Backend\database\local_db_info.ps1. Se omite la importacion de BD.
+    )
+) else (
+    echo [AVISO] Sin sitio Local; se omite la importacion de BD.
 )
 
 echo.
