@@ -2,8 +2,8 @@
 /**
  * Plugin Name: STB Academy Core & React Bridge
  * Plugin URI: https://github.com/jeasonbello95/STB-Academy
- * Description: Puente de integración de frontend React con WordPress y Tutor LMS. Carga la app de React optimizada y expone endpoints REST para cursos y estado de la academia.
- * Version: 1.0.0
+ * Description: Puente de integración de frontend React con WordPress y Tutor LMS. Carga la app de React optimizada, conecta el menú y sesión de WordPress al header y expone endpoints REST para cursos.
+ * Version: 1.1.0
  * Author: STB Academy Team
  * Author URI: https://stbacademy.net
  * Text Domain: stb-academy-core
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 define('STB_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('STB_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('STB_PLUGIN_VERSION', '1.0.0');
+define('STB_PLUGIN_VERSION', '1.1.0');
 
 class STB_Academy_Core {
     private static $instance = null;
@@ -28,6 +28,9 @@ class STB_Academy_Core {
     }
 
     private function __construct() {
+        // Registrar ubicación de menú de WordPress para el Header
+        add_action('init', array($this, 'register_nav_menus'));
+
         // Encolar scripts y estilos de React
         add_action('wp_enqueue_scripts', array($this, 'enqueue_react_assets'));
 
@@ -43,6 +46,98 @@ class STB_Academy_Core {
 
         // Filtrar tipo de script para añadir type="module" al bundle de Vite
         add_filter('script_loader_tag', array($this, 'add_module_to_script'), 10, 3);
+    }
+
+    /**
+     * Registrar ubicación de menú independiente del tema
+     */
+    public function register_nav_menus() {
+        register_nav_menus(array(
+            'stb_primary' => __('STB Academy Menú Principal (React Header)', 'stb-academy-core'),
+        ));
+    }
+
+    /**
+     * Obtener datos del menú y sesión de usuario desde WordPress
+     */
+    public function get_header_data() {
+        $menu_items = array();
+        $locations = get_nav_menu_locations();
+
+        $menu_id = null;
+        if (isset($locations['stb_primary']) && $locations['stb_primary'] > 0) {
+            $menu_id = $locations['stb_primary'];
+        } elseif (!empty($locations)) {
+            $menu_id = reset($locations);
+        }
+
+        if ($menu_id) {
+            $items = wp_get_nav_menu_items($menu_id);
+            if ($items && !is_wp_error($items)) {
+                foreach ($items as $item) {
+                    // Solo elementos principales (padres)
+                    if (empty($item->menu_item_parent)) {
+                        $url = $item->url;
+                        // Si la URL apunta al sitio actual, la convertimos en relativa si aplica
+                        $home_url = home_url();
+                        $path = str_replace($home_url, '', $url);
+                        if (empty($path)) {
+                            $path = '/';
+                        }
+
+                        $menu_items[] = array(
+                            'id'     => (string)$item->ID,
+                            'label'  => $item->title,
+                            'href'   => $path,
+                            'rawUrl' => $url,
+                            'target' => $item->target ? $item->target : '_self',
+                        );
+                    }
+                }
+            }
+        }
+
+        // Si no hay menú configurado en WordPress, usamos enlaces por defecto
+        if (empty($menu_items)) {
+            $menu_items = array(
+                array('id' => '1', 'label' => 'Inicio', 'href' => '/'),
+                array('id' => '2', 'label' => 'Cursos', 'href' => '/cursos'),
+                array('id' => '3', 'label' => 'Eventos', 'href' => '/eventos'),
+                array('id' => '4', 'label' => 'STBlock', 'href' => '/stblock'),
+            );
+        }
+
+        // Datos de usuario y Tutor LMS
+        $is_logged_in = is_user_logged_in();
+        $current_user = wp_get_current_user();
+        
+        $dashboard_url = home_url('/dashboard/');
+        if (function_exists('tutor_utils')) {
+            $tutor_dash = tutor_utils()->get_tutor_dashboard_page_permalink();
+            if ($tutor_dash) {
+                $dashboard_url = $tutor_dash;
+            }
+        }
+
+        return array(
+            'menu' => $menu_items,
+            'auth' => array(
+                'isLoggedIn'   => $is_logged_in,
+                'userId'       => $is_logged_in ? $current_user->ID : null,
+                'userName'     => $is_logged_in ? ($current_user->display_name ?: $current_user->user_login) : null,
+                'userEmail'    => $is_logged_in ? $current_user->user_email : null,
+                'userAvatar'   => $is_logged_in ? get_avatar_url($current_user->ID) : null,
+                'dashboardUrl' => esc_url($dashboard_url),
+                'loginUrl'     => esc_url(wp_login_url(home_url())),
+                'logoutUrl'    => esc_url(wp_logout_url(home_url())),
+                'registerUrl'  => esc_url(wp_registration_url()),
+            ),
+            'site' => array(
+                'name'        => get_bloginfo('name'),
+                'description' => get_bloginfo('description'),
+                'url'         => esc_url(home_url('/')),
+            ),
+        );
     }
 
     /**
@@ -104,16 +199,15 @@ class STB_Academy_Core {
                     true
                 );
 
-                // Configuración y endpoints para el frontend React
+                // Configuración y datos de menú/Tutor LMS para el frontend React
                 wp_localize_script('stb-react-bundle', 'STB_APP_CONFIG', array(
-                    'restUrl'        => esc_url_raw(rest_url()),
-                    'stbApiUrl'      => esc_url_raw(rest_url('stb/v1/')),
-                    'tutorApiUrl'    => esc_url_raw(rest_url('tutor/v1/')),
-                    'nonce'          => wp_create_nonce('wp_rest'),
-                    'siteUrl'        => esc_url_raw(site_url()),
-                    'isUserLoggedIn' => is_user_logged_in(),
-                    'currentUser'    => is_user_logged_in() ? wp_get_current_user()->display_name : null,
-                    'pluginUrl'      => STB_PLUGIN_URL,
+                    'restUrl'     => esc_url_raw(rest_url()),
+                    'stbApiUrl'   => esc_url_raw(rest_url('stb/v1/')),
+                    'tutorApiUrl' => esc_url_raw(rest_url('tutor/v1/')),
+                    'nonce'       => wp_create_nonce('wp_rest'),
+                    'siteUrl'     => esc_url_raw(site_url()),
+                    'pluginUrl'   => STB_PLUGIN_URL,
+                    'headerData'  => $this->get_header_data(),
                 ));
             }
         }
@@ -168,11 +262,24 @@ class STB_Academy_Core {
             'permission_callback' => '__return_true',
         ));
 
+        register_rest_route('stb/v1', '/header', array(
+            'methods'             => 'GET',
+            'callback'            => array($this, 'rest_get_header'),
+            'permission_callback' => '__return_true',
+        ));
+
         register_rest_route('stb/v1', '/stats', array(
             'methods'             => 'GET',
             'callback'            => array($this, 'rest_get_stats'),
             'permission_callback' => '__return_true',
         ));
+    }
+
+    /**
+     * Endpoint REST para el header
+     */
+    public function rest_get_header($request) {
+        return rest_ensure_response($this->get_header_data());
     }
 
     /**
