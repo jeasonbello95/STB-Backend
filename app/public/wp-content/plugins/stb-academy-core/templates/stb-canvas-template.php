@@ -9,6 +9,9 @@
 <head>
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="<?php echo esc_url(home_url('/imagenes/favicon.png')); ?>" />
+    <link rel="shortcut icon" type="image/png" href="<?php echo esc_url(home_url('/imagenes/favicon.png')); ?>" />
+    <link rel="apple-touch-icon" href="<?php echo esc_url(home_url('/imagenes/favicon.png')); ?>" />
     <?php wp_head(); ?>
 </head>
 <body <?php body_class('bg-ink-black text-white antialiased overflow-x-hidden'); ?>>
