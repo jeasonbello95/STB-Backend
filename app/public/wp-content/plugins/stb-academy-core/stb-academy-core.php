@@ -54,23 +54,53 @@ class STB_Academy_Core {
         // Redirigir siempre a la portada principal al cerrar sesión (evitar wp-login.php)
         add_filter('logout_redirect', array($this, 'custom_logout_redirect'), 99, 3);
         add_action('wp_logout', array($this, 'custom_on_logout'));
+
+        // Bloquear acceso a /wp-admin/ para usuarios normales (estudiantes/suscriptores)
+        add_action('admin_init', array($this, 'restrict_wp_admin_access'));
+        add_action('after_setup_theme', array($this, 'hide_admin_bar_for_students'));
+        add_filter('login_redirect', array($this, 'custom_login_redirect'), 99, 3);
     }
 
     /**
-     * Redirigir siempre a la portada de la academia al cerrar sesión
+     * Bloquear el acceso a wp-admin para usuarios no administradores
+     * Redirige al alumno a la portada principal con su cuenta logueada
      */
-    public function custom_logout_redirect($redirect_to, $requested_redirect_to, $user) {
-        return home_url('/');
-    }
+    public function restrict_wp_admin_access() {
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            return;
+        }
 
-    /**
-     * Asegurar redirección limpia al cerrar sesión
-     */
-    public function custom_on_logout() {
-        if (!defined('REST_REQUEST') || !REST_REQUEST) {
+        if (!is_user_logged_in()) {
+            return;
+        }
+
+        // Si el usuario no tiene permisos de administrador, redirigir al inicio
+        if (!current_user_can('administrator') && !current_user_can('manage_options')) {
             wp_safe_redirect(home_url('/'));
             exit;
         }
+    }
+
+    /**
+     * Ocultar la barra superior de administración de WordPress para estudiantes
+     */
+    public function hide_admin_bar_for_students() {
+        if (!current_user_can('administrator') && !current_user_can('manage_options')) {
+            show_admin_bar(false);
+        }
+    }
+
+    /**
+     * Redirección de login según rol de usuario
+     */
+    public function custom_login_redirect($redirect_to, $requested_redirect_to, $user) {
+        if (is_a($user, 'WP_User')) {
+            if ($user->has_cap('administrator') || $user->has_cap('manage_options')) {
+                return $redirect_to ?: admin_url();
+            }
+            return home_url('/');
+        }
+        return $redirect_to;
     }
 
     /**
