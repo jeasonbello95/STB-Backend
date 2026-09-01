@@ -145,6 +145,7 @@ class STB_Academy_Core {
             '/stblock/run',
             '/login',
             '/registro',
+            '/verificar-cuenta',
         );
 
         foreach ($react_routes as $route) {
@@ -430,6 +431,90 @@ class STB_Academy_Core {
             'callback'            => array($this, 'rest_auth_me'),
             'permission_callback' => '__return_true',
         ));
+
+        register_rest_route('stb/v1', '/auth/verify', array(
+            'methods'             => 'GET',
+            'callback'            => array($this, 'rest_auth_verify'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route('stb/v1', '/auth/resend-verification', array(
+            'methods'             => 'POST',
+            'callback'            => array($this, 'rest_auth_resend_verification'),
+            'permission_callback' => '__return_true',
+        ));
+    }
+
+    /**
+     * Envía correo HTML oficial de verificación de cuenta mediante FluentSMTP / wp_mail
+     */
+    public function send_verification_email($user_id, $email, $name, $token) {
+        $verify_url = home_url('/verificar-cuenta?token=' . urlencode($token) . '&email=' . urlencode($email));
+        $logo_url = home_url('/imagenes/LOGO-STB-ACADEMY--BLANCO.png');
+        $site_name = get_bloginfo('name') ?: 'STB Academy';
+
+        $subject = 'Verifica tu cuenta en STB Academy';
+
+        $message = '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Verifica tu cuenta en STB Academy</title>
+</head>
+<body style="margin:0;padding:0;background-color:#07090e;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;color:#e2e8f0;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#07090e;padding:40px 15px;">
+        <tr>
+            <td align="center">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:580px;background-color:#0d121f;border-radius:24px;border:1px solid rgba(255,255,255,0.12);overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+                    <tr>
+                        <td style="height:3px;background:linear-gradient(90deg, #10b981, #54b435, #06b6d4);"></td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding:35px 30px 20px 30px;">
+                            <img src="' . esc_url($logo_url) . '" alt="' . esc_attr($site_name) . '" style="height:42px;width:auto;display:block;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px 40px 30px 40px;text-align:center;">
+                            <h1 style="color:#ffffff;font-size:24px;font-weight:800;margin:0 0 12px 0;letter-spacing:-0.5px;">¡Bienvenido a STB Academy, ' . esc_html($name) . '!</h1>
+                            <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 28px 0;">
+                                Gracias por registrarte en nuestra plataforma. Para activar tu cuenta de estudiante y comenzar tus cursos, confirma tu correo electrónico haciendo clic en el siguiente botón:
+                            </p>
+                            <table border="0" cellspacing="0" cellpadding="0" style="margin:0 auto 30px auto;">
+                                <tr>
+                                    <td align="center" style="border-radius:50px;background-color:#54b435;box-shadow:0 0 25px rgba(84,180,53,0.4);">
+                                        <a href="' . esc_url($verify_url) . '" target="_blank" style="display:inline-block;padding:16px 36px;font-size:13px;font-weight:700;color:#000000;text-decoration:none;text-transform:uppercase;letter-spacing:1px;border-radius:50px;">
+                                            Verificar mi Cuenta
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="color:#64748b;font-size:12px;line-height:1.5;margin:0 0 8px 0;">
+                                O copia y pega el siguiente enlace en tu navegador:
+                            </p>
+                            <p style="color:#54b435;font-size:12px;word-break:break-all;margin:0 0 25px 0;">
+                                <a href="' . esc_url($verify_url) . '" style="color:#54b435;text-decoration:none;">' . esc_html($verify_url) . '</a>
+                            </p>
+                            <div style="height:1px;background-color:rgba(255,255,255,0.08);margin:25px 0;"></div>
+                            <p style="color:#475569;font-size:12px;margin:0;">
+                                Si no creaste esta cuenta, puedes ignorar este correo con total tranquilidad.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding:20px;background-color:#06080d;border-top:1px solid rgba(255,255,255,0.06);color:#475569;font-size:11px;">
+                            © ' . date('Y') . ' STB Academy. Todos los derechos reservados.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>';
+
+        $headers = array('Content-Type: text/html; charset=UTF-8');
+        return wp_mail($email, $subject, $message, $headers);
     }
 
     /**
@@ -472,6 +557,22 @@ class STB_Academy_Core {
             ), 401);
         }
 
+        // Verificar si la cuenta requiere verificación por correo (para no-administradores)
+        $is_admin = user_can($user->ID, 'administrator') || user_can($user->ID, 'manage_options');
+        $is_verified = get_user_meta($user->ID, '_stb_email_verified', true);
+
+        if (!$is_admin && $is_verified === '0') {
+            // Destruir cualquier cookie que wp_signon haya colocado
+            wp_logout();
+
+            return new WP_REST_Response(array(
+                'success'      => false,
+                'isUnverified' => true,
+                'email'        => $user->user_email,
+                'message'      => 'Tu cuenta aún no ha sido verificada. Por favor revisa tu correo electrónico para activarla.',
+            ), 403);
+        }
+
         wp_set_current_user($user->ID);
         wp_set_auth_cookie($user->ID, true);
 
@@ -495,7 +596,7 @@ class STB_Academy_Core {
     }
 
     /**
-     * Endpoint para registrar nuevos estudiantes desde React
+     * Endpoint para registrar nuevos estudiantes desde React con verificación obligatoria
      */
     public function rest_auth_register($request) {
         $params = $request->get_json_params();
@@ -551,9 +652,80 @@ class STB_Academy_Core {
             update_user_meta($user_id, 'phone_number', $phone);
         }
 
-        // Iniciar sesión inmediatamente
-        wp_set_current_user($user_id);
-        wp_set_auth_cookie($user_id, true);
+        // Asignar rol de suscriptor / alumno en Tutor LMS
+        $user_obj = new WP_User($user_id);
+        $user_obj->set_role('subscriber');
+
+        // Generar token criptográfico para verificación por correo
+        $verification_token = wp_generate_password(48, false);
+        update_user_meta($user_id, '_stb_email_verified', '0');
+        update_user_meta($user_id, '_stb_verification_token', $verification_token);
+        update_user_meta($user_id, '_stb_verification_sent_at', time());
+
+        // Enviar correo de verificación a través de FluentSMTP / wp_mail
+        $this->send_verification_email($user_id, $email, $name, $verification_token);
+
+        return new WP_REST_Response(array(
+            'success'              => true,
+            'requiresVerification' => true,
+            'message'              => '¡Cuenta creada con éxito! Te hemos enviado un correo de verificación. Por favor revisa tu bandeja de entrada o spam para activar tu cuenta.',
+            'email'                => $email,
+        ), 200);
+    }
+
+    /**
+     * Endpoint para verificar token recibido por enlace de correo
+     */
+    public function rest_auth_verify($request) {
+        $token = sanitize_text_field($request->get_param('token') ?? '');
+        $email = sanitize_email($request->get_param('email') ?? '');
+
+        if (empty($token)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'No se ha proporcionado un token de verificación.',
+            ), 400);
+        }
+
+        $user = null;
+        if (!empty($email)) {
+            $user = get_user_by('email', $email);
+        }
+
+        if (!$user) {
+            $users = get_users(array(
+                'meta_key'   => '_stb_verification_token',
+                'meta_value' => $token,
+                'number'     => 1,
+            ));
+            if (!empty($users)) {
+                $user = $users[0];
+            }
+        }
+
+        if (!$user) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'El enlace de verificación no es válido o ya fue utilizado.',
+            ), 400);
+        }
+
+        $stored_token = get_user_meta($user->ID, '_stb_verification_token', true);
+        if (empty($stored_token) || $stored_token !== $token) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'El token de verificación es inválido o ha expirado.',
+            ), 400);
+        }
+
+        // Marcar cuenta como verificada
+        update_user_meta($user->ID, '_stb_email_verified', '1');
+        delete_user_meta($user->ID, '_stb_verification_token');
+        delete_user_meta($user->ID, '_stb_verification_sent_at');
+
+        // Iniciar sesión automáticamente tras verificar
+        wp_set_current_user($user->ID);
+        wp_set_auth_cookie($user->ID, true);
 
         $dashboard_url = home_url('/dashboard/');
         if (function_exists('tutor_utils') && tutor_utils()->get_tutor_dashboard_page_permalink()) {
@@ -562,14 +734,51 @@ class STB_Academy_Core {
 
         return new WP_REST_Response(array(
             'success'     => true,
-            'message'     => 'Registro completado con éxito.',
-            'user'        => array(
-                'id'       => $user_id,
-                'name'     => $name,
-                'email'    => $email,
-                'avatar'   => get_avatar_url($user_id),
-            ),
+            'message'     => '¡Tu cuenta ha sido verificada con éxito! Bienvenido a STB Academy.',
             'redirectUrl' => $dashboard_url,
+        ), 200);
+    }
+
+    /**
+     * Endpoint para reenviar correo de verificación
+     */
+    public function rest_auth_resend_verification($request) {
+        $params = $request->get_json_params();
+        $email = sanitize_email($params['email'] ?? '');
+
+        if (empty($email) || !is_email($email)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Por favor introduce una dirección de correo válida.',
+            ), 400);
+        }
+
+        $user = get_user_by('email', $email);
+        if (!$user) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'No encontramos ninguna cuenta asociada a este correo electrónico.',
+            ), 404);
+        }
+
+        $is_verified = get_user_meta($user->ID, '_stb_email_verified', true);
+        if ($is_verified === '1') {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Esta cuenta ya está verificada. Puedes iniciar sesión directamente.',
+            ), 400);
+        }
+
+        $token = wp_generate_password(48, false);
+        update_user_meta($user->ID, '_stb_verification_token', $token);
+        update_user_meta($user->ID, '_stb_verification_sent_at', time());
+
+        $name = $user->display_name ?: $user->user_login;
+        $this->send_verification_email($user->ID, $email, $name, $token);
+
+        return new WP_REST_Response(array(
+            'success' => true,
+            'message' => 'Hemos reenviado el correo de verificación. Revisa tu bandeja de entrada o spam.',
         ), 200);
     }
 
