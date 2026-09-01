@@ -56,6 +56,21 @@ class STB_Academy_Core {
      * Determina si la petición actual corresponde a la portada o una ruta de React
      */
     public function is_stb_react_route() {
+        // Ignorar peticiones REST API, wp-admin, wp-login, cron, etc.
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            return false;
+        }
+
+        $request_uri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '';
+        if (
+            strpos($request_uri, '/wp-json') !== false ||
+            strpos($request_uri, '/wp-admin') !== false ||
+            strpos($request_uri, 'wp-login.php') !== false ||
+            strpos($request_uri, 'xmlrpc.php') !== false
+        ) {
+            return false;
+        }
+
         // 1. Portada del sitio (página principal)
         if (is_front_page() || is_home()) {
             return true;
@@ -71,7 +86,7 @@ class STB_Academy_Core {
         }
 
         // 3. Rutas del frontend React (SPA)
-        $request_uri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        $clean_uri = rtrim($request_uri, '/');
         $react_routes = array(
             '/cursos',
             '/eventos',
@@ -82,7 +97,7 @@ class STB_Academy_Core {
         );
 
         foreach ($react_routes as $route) {
-            if ($request_uri === $route || strpos($request_uri, $route . '/') === 0) {
+            if ($clean_uri === $route || strpos($clean_uri, $route . '/') === 0) {
                 return true;
             }
         }
@@ -339,6 +354,210 @@ class STB_Academy_Core {
             'callback'            => array($this, 'rest_get_stats'),
             'permission_callback' => '__return_true',
         ));
+
+        // Endpoints de autenticación (Login, Registro, Logout, Estado de sesión)
+        register_rest_route('stb/v1', '/auth/login', array(
+            'methods'             => 'POST',
+            'callback'            => array($this, 'rest_auth_login'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route('stb/v1', '/auth/register', array(
+            'methods'             => 'POST',
+            'callback'            => array($this, 'rest_auth_register'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route('stb/v1', '/auth/logout', array(
+            'methods'             => 'POST',
+            'callback'            => array($this, 'rest_auth_logout'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route('stb/v1', '/auth/me', array(
+            'methods'             => 'GET',
+            'callback'            => array($this, 'rest_auth_me'),
+            'permission_callback' => '__return_true',
+        ));
+    }
+
+    /**
+     * Endpoint para iniciar sesión en WordPress / Tutor LMS desde React
+     */
+    public function rest_auth_login($request) {
+        $params = $request->get_json_params();
+        $username = isset($params['username']) ? trim($params['username']) : '';
+        $password = isset($params['password']) ? $params['password'] : '';
+        $remember = !empty($params['remember']);
+
+        if (empty($username) || empty($password)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Por favor proporciona tu correo o usuario y tu contraseña.',
+            ), 400);
+        }
+
+        // Si ingresaron un email, buscar el username correspondiente
+        if (is_email($username)) {
+            $user_obj = get_user_by('email', $username);
+            if ($user_obj) {
+                $username = $user_obj->user_login;
+            }
+        }
+
+        $creds = array(
+            'user_login'    => $username,
+            'user_password' => $password,
+            'remember'      => $remember || true,
+        );
+
+        $user = wp_signon($creds, false);
+
+        if (is_wp_error($user)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Usuario o contraseña incorrectos.',
+                'error'   => $user->get_error_message(),
+            ), 401);
+        }
+
+        wp_set_current_user($user->ID);
+        wp_set_auth_cookie($user->ID, true);
+
+        $dashboard_url = home_url('/dashboard/');
+        if (function_exists('tutor_utils') && tutor_utils()->get_tutor_dashboard_page_permalink()) {
+            $dashboard_url = tutor_utils()->get_tutor_dashboard_page_permalink();
+        }
+
+        return new WP_REST_Response(array(
+            'success'     => true,
+            'message'     => 'Inicio de sesión exitoso.',
+            'user'        => array(
+                'id'       => $user->ID,
+                'name'     => $user->display_name ?: $user->user_login,
+                'email'    => $user->user_email,
+                'avatar'   => get_avatar_url($user->ID),
+                'roles'    => (array)$user->roles,
+            ),
+            'redirectUrl' => $dashboard_url,
+        ), 200);
+    }
+
+    /**
+     * Endpoint para registrar nuevos estudiantes desde React
+     */
+    public function rest_auth_register($request) {
+        $params = $request->get_json_params();
+        $name = isset($params['name']) ? sanitize_text_field($params['name']) : '';
+        $email = isset($params['email']) ? sanitize_email($params['email']) : '';
+        $phone = isset($params['phone']) ? sanitize_text_field($params['phone']) : '';
+        $password = isset($params['password']) ? $params['password'] : '';
+
+        if (empty($email) || empty($password) || empty($name)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Todos los campos obligatorios deben ser completados.',
+            ), 400);
+        }
+
+        if (!is_email($email)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'El formato del correo electrónico no es válido.',
+            ), 400);
+        }
+
+        if (email_exists($email)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Este correo electrónico ya está registrado. Por favor inicia sesión.',
+            ), 400);
+        }
+
+        // Generar nombre de usuario único
+        $username = sanitize_user(current(explode('@', $email)));
+        if (empty($username) || username_exists($username)) {
+            $username = 'user_' . wp_rand(1000, 99999);
+        }
+
+        $user_id = wp_create_user($username, $password, $email);
+
+        if (is_wp_error($user_id)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => $user_id->get_error_message(),
+            ), 400);
+        }
+
+        // Guardar nombre visible y teléfono
+        wp_update_user(array(
+            'ID'           => $user_id,
+            'display_name' => $name,
+            'first_name'   => $name,
+        ));
+
+        if (!empty($phone)) {
+            update_user_meta($user_id, 'phone_number', $phone);
+        }
+
+        // Iniciar sesión inmediatamente
+        wp_set_current_user($user_id);
+        wp_set_auth_cookie($user_id, true);
+
+        $dashboard_url = home_url('/dashboard/');
+        if (function_exists('tutor_utils') && tutor_utils()->get_tutor_dashboard_page_permalink()) {
+            $dashboard_url = tutor_utils()->get_tutor_dashboard_page_permalink();
+        }
+
+        return new WP_REST_Response(array(
+            'success'     => true,
+            'message'     => 'Registro completado con éxito.',
+            'user'        => array(
+                'id'       => $user_id,
+                'name'     => $name,
+                'email'    => $email,
+                'avatar'   => get_avatar_url($user_id),
+            ),
+            'redirectUrl' => $dashboard_url,
+        ), 200);
+    }
+
+    /**
+     * Endpoint para cerrar sesión
+     */
+    public function rest_auth_logout($request) {
+        wp_logout();
+        return new WP_REST_Response(array(
+            'success'     => true,
+            'redirectUrl' => home_url('/'),
+        ), 200);
+    }
+
+    /**
+     * Endpoint para consultar sesión actual
+     */
+    public function rest_auth_me($request) {
+        $is_logged_in = is_user_logged_in();
+        if (!$is_logged_in) {
+            return new WP_REST_Response(array(
+                'isLoggedIn' => false,
+            ), 200);
+        }
+
+        $current_user = wp_get_current_user();
+        $dashboard_url = home_url('/dashboard/');
+        if (function_exists('tutor_utils') && tutor_utils()->get_tutor_dashboard_page_permalink()) {
+            $dashboard_url = tutor_utils()->get_tutor_dashboard_page_permalink();
+        }
+
+        return new WP_REST_Response(array(
+            'isLoggedIn'   => true,
+            'id'           => $current_user->ID,
+            'name'         => $current_user->display_name ?: $current_user->user_login,
+            'email'        => $current_user->user_email,
+            'avatar'       => get_avatar_url($current_user->ID),
+            'dashboardUrl' => esc_url($dashboard_url),
+        ), 200);
     }
 
     /**
