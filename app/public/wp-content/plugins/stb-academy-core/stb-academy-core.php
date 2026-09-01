@@ -2,8 +2,8 @@
 /**
  * Plugin Name: STB Academy Core & React Bridge
  * Plugin URI: https://github.com/jeasonbello95/STB-Academy
- * Description: Puente de integración de frontend React con WordPress y Tutor LMS. Carga la app de React optimizada, conecta el menú y sesión de WordPress al header y expone endpoints REST para cursos.
- * Version: 1.1.0
+ * Description: Puente de integración de frontend React con WordPress y Tutor LMS. Carga la app de React en la portada y rutas principales, conecta el menú y sesión de WordPress al header y expone endpoints REST para cursos.
+ * Version: 1.2.0
  * Author: STB Academy Team
  * Author URI: https://stbacademy.net
  * Text Domain: stb-academy-core
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 define('STB_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('STB_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('STB_PLUGIN_VERSION', '1.1.0');
+define('STB_PLUGIN_VERSION', '1.2.0');
 
 class STB_Academy_Core {
     private static $instance = null;
@@ -37,15 +37,53 @@ class STB_Academy_Core {
         // Shortcode para incrustar la app React en cualquier página
         add_shortcode('stb_academy_app', array($this, 'render_react_app_shortcode'));
 
-        // Registrar plantilla de página tipo Canvas
+        // Registrar plantilla de página tipo Canvas y captura de portada/rutas React
         add_filter('theme_page_templates', array($this, 'register_page_templates'));
-        add_filter('template_include', array($this, 'load_page_templates'));
+        add_filter('template_include', array($this, 'load_page_templates'), 99);
 
         // Registrar endpoints REST API personalizados para React + Tutor LMS
         add_action('rest_api_init', array($this, 'register_rest_routes'));
 
         // Filtrar tipo de script para añadir type="module" al bundle de Vite
         add_filter('script_loader_tag', array($this, 'add_module_to_script'), 10, 3);
+    }
+
+    /**
+     * Determina si la petición actual corresponde a la portada o una ruta de React
+     */
+    public function is_stb_react_route() {
+        // 1. Portada del sitio (página principal)
+        if (is_front_page() || is_home()) {
+            return true;
+        }
+
+        // 2. Página con plantilla STB Canvas o con shortcode
+        global $post;
+        if (is_a($post, 'WP_Post') && (
+            has_shortcode($post->post_content, 'stb_academy_app') ||
+            get_page_template_slug($post->ID) === 'stb-canvas-template.php'
+        )) {
+            return true;
+        }
+
+        // 3. Rutas del frontend React (SPA)
+        $request_uri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        $react_routes = array(
+            '/cursos',
+            '/eventos',
+            '/stblock',
+            '/stblock/run',
+            '/login',
+            '/registro',
+        );
+
+        foreach ($react_routes as $route) {
+            if ($request_uri === $route || strpos($request_uri, $route . '/') === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -78,7 +116,6 @@ class STB_Academy_Core {
                     // Solo elementos principales (padres)
                     if (empty($item->menu_item_parent)) {
                         $url = $item->url;
-                        // Si la URL apunta al sitio actual, la convertimos en relativa si aplica
                         $home_url = home_url();
                         $path = str_replace($home_url, '', $url);
                         if (empty($path)) {
@@ -167,18 +204,10 @@ class STB_Academy_Core {
     }
 
     /**
-     * Encola los assets de React sólo cuando es necesario o en páginas con el template/shortcode
+     * Encola los assets de React sólo en la portada o rutas de STB Academy
      */
     public function enqueue_react_assets() {
-        global $post;
-
-        $is_stb_page = is_front_page() || (is_a($post, 'WP_Post') && (
-            has_shortcode($post->post_content, 'stb_academy_app') ||
-            get_page_template_slug($post->ID) === 'stb-canvas-template.php'
-        ));
-
-        // Si es una página de STB, encolamos el bundle de Vite
-        if ($is_stb_page) {
+        if ($this->is_stb_react_route()) {
             $assets = $this->get_vite_assets();
 
             if (!empty($assets['css']) && file_exists(STB_PLUGIN_DIR . $assets['css'])) {
@@ -239,13 +268,20 @@ class STB_Academy_Core {
     }
 
     /**
-     * Carga el archivo de plantilla si está seleccionado
+     * Intercepta la portada y rutas de React para renderizar la app en pantalla completa
      */
     public function load_page_templates($template) {
-        global $post;
-        if ($post && get_page_template_slug($post->ID) === 'stb-canvas-template.php') {
+        if ($this->is_stb_react_route()) {
             $custom_template = STB_PLUGIN_DIR . 'templates/stb-canvas-template.php';
             if (file_exists($custom_template)) {
+                // Si WordPress creía que era 404 porque la ruta solo existe en React, corregir el status
+                if (is_404()) {
+                    status_header(200);
+                    global $wp_query;
+                    if ($wp_query) {
+                        $wp_query->is_404 = false;
+                    }
+                }
                 return $custom_template;
             }
         }
