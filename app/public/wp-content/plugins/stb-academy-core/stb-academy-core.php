@@ -50,6 +50,27 @@ class STB_Academy_Core {
 
         // Filtrar tipo de script para añadir type="module" al bundle de Vite
         add_filter('script_loader_tag', array($this, 'add_module_to_script'), 10, 3);
+
+        // Redirigir siempre a la portada principal al cerrar sesión (evitar wp-login.php)
+        add_filter('logout_redirect', array($this, 'custom_logout_redirect'), 99, 3);
+        add_action('wp_logout', array($this, 'custom_on_logout'));
+    }
+
+    /**
+     * Redirigir siempre a la portada de la academia al cerrar sesión
+     */
+    public function custom_logout_redirect($redirect_to, $requested_redirect_to, $user) {
+        return home_url('/');
+    }
+
+    /**
+     * Asegurar redirección limpia al cerrar sesión
+     */
+    public function custom_on_logout() {
+        if (!defined('REST_REQUEST') || !REST_REQUEST) {
+            wp_safe_redirect(home_url('/'));
+            exit;
+        }
     }
 
     /**
