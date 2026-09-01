@@ -1,7 +1,7 @@
 <?php
 /**
  * Template Name: STB Academy Canvas (Pantalla Completa React)
- * Description: Plantilla limpia de pantalla completa que monta el Header nativo de WordPress y la app de React.
+ * Description: Plantilla limpia de pantalla completa que monta la app de React con su Header oficial interactivo.
  */
 ?>
 <!DOCTYPE html>
@@ -13,14 +13,6 @@
 </head>
 <body <?php body_class('bg-ink-black text-white antialiased overflow-x-hidden'); ?>>
     <?php wp_body_open(); ?>
-
-    <?php
-    // Cargar Header nativo de WordPress
-    $native_header = STB_PLUGIN_DIR . 'templates/parts/header-native.php';
-    if (file_exists($native_header)) {
-        include $native_header;
-    }
-    ?>
 
     <div id="root"></div>
 
