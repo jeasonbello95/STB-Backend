@@ -2,8 +2,8 @@
 /**
  * Plugin Name: STB Academy Core & React Bridge
  * Plugin URI: https://github.com/jeasonbello95/STB-Academy
- * Description: Puente de integración de frontend React con WordPress y Tutor LMS. Carga la app de React en la portada y rutas principales, conecta el menú y sesión de WordPress al header y expone endpoints REST para cursos.
- * Version: 1.2.0
+ * Description: Puente de integración de frontend React con WordPress y Tutor LMS. Carga el Header nativo de WordPress (wp_nav_menu), la app de React en portada/rutas principales y expone endpoints REST para cursos.
+ * Version: 1.3.0
  * Author: STB Academy Team
  * Author URI: https://stbacademy.net
  * Text Domain: stb-academy-core
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 define('STB_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('STB_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('STB_PLUGIN_VERSION', '1.2.0');
+define('STB_PLUGIN_VERSION', '1.3.0');
 
 class STB_Academy_Core {
     private static $instance = null;
@@ -30,6 +30,10 @@ class STB_Academy_Core {
     private function __construct() {
         // Registrar ubicación de menú de WordPress para el Header
         add_action('init', array($this, 'register_nav_menus'));
+
+        // Filtros para estilizar los enlaces del menú nativo wp_nav_menu()
+        add_filter('nav_menu_link_attributes', array($this, 'style_nav_menu_links'), 10, 3);
+        add_filter('nav_menu_css_class', array($this, 'style_nav_menu_items'), 10, 3);
 
         // Encolar scripts y estilos de React
         add_action('wp_enqueue_scripts', array($this, 'enqueue_react_assets'));
@@ -91,8 +95,30 @@ class STB_Academy_Core {
      */
     public function register_nav_menus() {
         register_nav_menus(array(
-            'stb_primary' => __('STB Academy Menú Principal (React Header)', 'stb-academy-core'),
+            'stb_primary' => __('STB Academy Menú Principal (Header Nativo)', 'stb-academy-core'),
         ));
+    }
+
+    /**
+     * Estilos de clases para los elementos <li> del menú nativo
+     */
+    public function style_nav_menu_items($classes, $item, $args) {
+        $classes[] = 'list-none m-0 p-0';
+        return $classes;
+    }
+
+    /**
+     * Estilos para las etiquetas <a> del menú nativo
+     */
+    public function style_nav_menu_links($atts, $item, $args) {
+        $is_stblock = strpos(strtolower($item->title . ' ' . $item->url), 'stblock') !== false;
+        if ($is_stblock) {
+            $atts['class'] = 'rounded-full border border-primary-500/50 bg-primary-500/10 px-4 py-1.5 text-xs font-semibold text-primary-300 hover:bg-primary-500/20 hover:border-primary-400 transition-all';
+        } else {
+            $atts['class'] = 'text-slate-300 hover:text-white font-display text-[0.9rem] font-medium tracking-wide transition-colors';
+        }
+        $atts['style'] = 'text-decoration:none;';
+        return $atts;
     }
 
     /**
@@ -113,7 +139,6 @@ class STB_Academy_Core {
             $items = wp_get_nav_menu_items($menu_id);
             if ($items && !is_wp_error($items)) {
                 foreach ($items as $item) {
-                    // Solo elementos principales (padres)
                     if (empty($item->menu_item_parent)) {
                         $url = $item->url;
                         $home_url = home_url();
@@ -134,7 +159,6 @@ class STB_Academy_Core {
             }
         }
 
-        // Si no hay menú configurado en WordPress, usamos enlaces por defecto
         if (empty($menu_items)) {
             $menu_items = array(
                 array('id' => '1', 'label' => 'Inicio', 'href' => '/'),
@@ -144,7 +168,6 @@ class STB_Academy_Core {
             );
         }
 
-        // Datos de usuario y Tutor LMS
         $is_logged_in = is_user_logged_in();
         $current_user = wp_get_current_user();
         
@@ -228,15 +251,16 @@ class STB_Academy_Core {
                     true
                 );
 
-                // Configuración y datos de menú/Tutor LMS para el frontend React
+                // Configuración para el frontend React (indicando que el header nativo está activo)
                 wp_localize_script('stb-react-bundle', 'STB_APP_CONFIG', array(
-                    'restUrl'     => esc_url_raw(rest_url()),
-                    'stbApiUrl'   => esc_url_raw(rest_url('stb/v1/')),
-                    'tutorApiUrl' => esc_url_raw(rest_url('tutor/v1/')),
-                    'nonce'       => wp_create_nonce('wp_rest'),
-                    'siteUrl'     => esc_url_raw(site_url()),
-                    'pluginUrl'   => STB_PLUGIN_URL,
-                    'headerData'  => $this->get_header_data(),
+                    'restUrl'            => esc_url_raw(rest_url()),
+                    'stbApiUrl'          => esc_url_raw(rest_url('stb/v1/')),
+                    'tutorApiUrl'        => esc_url_raw(rest_url('tutor/v1/')),
+                    'nonce'              => wp_create_nonce('wp_rest'),
+                    'siteUrl'            => esc_url_raw(site_url()),
+                    'pluginUrl'          => STB_PLUGIN_URL,
+                    'nativeHeaderActive' => true,
+                    'headerData'         => $this->get_header_data(),
                 ));
             }
         }
@@ -268,13 +292,12 @@ class STB_Academy_Core {
     }
 
     /**
-     * Intercepta la portada y rutas de React para renderizar la app en pantalla completa
+     * Intercepta la portada y rutas de React para renderizar la app en pantalla completa con Header nativo
      */
     public function load_page_templates($template) {
         if ($this->is_stb_react_route()) {
             $custom_template = STB_PLUGIN_DIR . 'templates/stb-canvas-template.php';
             if (file_exists($custom_template)) {
-                // Si WordPress creía que era 404 porque la ruta solo existe en React, corregir el status
                 if (is_404()) {
                     status_header(200);
                     global $wp_query;
