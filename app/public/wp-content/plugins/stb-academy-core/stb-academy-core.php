@@ -208,14 +208,22 @@ class STB_Academy_Core {
         $assets_dir = $dist_dir . 'assets/';
         $js_file = '';
         $css_file = '';
+        $latest_js_mtime = 0;
+        $latest_css_mtime = 0;
 
         if (is_dir($assets_dir)) {
             $files = scandir($assets_dir);
             foreach ($files as $file) {
-                if (preg_match('/^index-.*\.js$/', $file)) {
-                    $js_file = 'dist/assets/' . $file;
-                } elseif (preg_match('/^index-.*\.css$/', $file)) {
-                    $css_file = 'dist/assets/' . $file;
+                $full_path = $assets_dir . $file;
+                if (is_file($full_path)) {
+                    $mtime = filemtime($full_path);
+                    if (preg_match('/^index-.*\.js$/', $file) && $mtime > $latest_js_mtime) {
+                        $js_file = 'dist/assets/' . $file;
+                        $latest_js_mtime = $mtime;
+                    } elseif (preg_match('/^index-.*\.css$/', $file) && $mtime > $latest_css_mtime) {
+                        $css_file = 'dist/assets/' . $file;
+                        $latest_css_mtime = $mtime;
+                    }
                 }
             }
         }
@@ -251,16 +259,15 @@ class STB_Academy_Core {
                     true
                 );
 
-                // Configuración para el frontend React (indicando que el header nativo está activo)
+                // Configuración y datos de menú/Tutor LMS para el frontend React
                 wp_localize_script('stb-react-bundle', 'STB_APP_CONFIG', array(
-                    'restUrl'            => esc_url_raw(rest_url()),
-                    'stbApiUrl'          => esc_url_raw(rest_url('stb/v1/')),
-                    'tutorApiUrl'        => esc_url_raw(rest_url('tutor/v1/')),
-                    'nonce'              => wp_create_nonce('wp_rest'),
-                    'siteUrl'            => esc_url_raw(site_url()),
-                    'pluginUrl'          => STB_PLUGIN_URL,
-                    'nativeHeaderActive' => true,
-                    'headerData'         => $this->get_header_data(),
+                    'restUrl'     => esc_url_raw(rest_url()),
+                    'stbApiUrl'   => esc_url_raw(rest_url('stb/v1/')),
+                    'tutorApiUrl' => esc_url_raw(rest_url('tutor/v1/')),
+                    'nonce'       => wp_create_nonce('wp_rest'),
+                    'siteUrl'     => esc_url_raw(site_url()),
+                    'pluginUrl'   => STB_PLUGIN_URL,
+                    'headerData'  => $this->get_header_data(),
                 ));
             }
         }
