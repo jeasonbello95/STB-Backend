@@ -335,9 +335,79 @@ class STB_Academy_Core {
                     'siteUrl'     => esc_url_raw(site_url()),
                     'pluginUrl'   => STB_PLUGIN_URL,
                     'headerData'  => $this->get_header_data(),
+                    'recaptcha'   => array(
+                        'enabled' => $this->is_recaptcha_enabled(),
+                        'siteKey' => $this->get_recaptcha_site_key(),
+                    ),
                 ));
             }
         }
+    }
+
+    /**
+     * Comprueba si Google reCAPTCHA debe estar activo
+     * Se desactiva automáticamente en local (.local, localhost, 127.0.0.1) y se activa en producción
+     */
+    public function is_recaptcha_enabled() {
+        if (defined('STB_RECAPTCHA_ENABLED')) {
+            return (bool) STB_RECAPTCHA_ENABLED;
+        }
+
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        if (
+            strpos($host, '.local') !== false ||
+            strpos($host, 'localhost') !== false ||
+            strpos($host, '127.0.0.1') !== false ||
+            (function_exists('wp_get_environment_type') && wp_get_environment_type() === 'local')
+        ) {
+            return false;
+        }
+
+        return (bool) get_option('stb_recaptcha_enabled', true);
+    }
+
+    /**
+     * Obtiene la clave de sitio pública de reCAPTCHA
+     */
+    public function get_recaptcha_site_key() {
+        if (defined('STB_RECAPTCHA_SITE_KEY')) {
+            return STB_RECAPTCHA_SITE_KEY;
+        }
+        return get_option('stb_recaptcha_site_key', '6Ld-PROD-STB-ACADEMY-SITE-KEY');
+    }
+
+    /**
+     * Valida el token de reCAPTCHA con los servidores de Google
+     */
+    public function verify_recaptcha($token) {
+        if (!$this->is_recaptcha_enabled()) {
+            return true; // En entorno local se omite la validación
+        }
+
+        if (empty($token)) {
+            return false;
+        }
+
+        $secret_key = defined('STB_RECAPTCHA_SECRET_KEY') ? STB_RECAPTCHA_SECRET_KEY : get_option('stb_recaptcha_secret_key', '');
+        if (empty($secret_key) || $secret_key === '6Ld-PROD-STB-ACADEMY-SECRET-KEY') {
+            return true; // Si aún no se ha colocado la clave secreta real en producción, no bloquear
+        }
+
+        $response = wp_remote_post('https://www.google.com/recaptcha/api/siteverify', array(
+            'body' => array(
+                'secret'   => $secret_key,
+                'response' => $token,
+                'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+            ),
+            'timeout' => 10,
+        ));
+
+        if (is_wp_error($response)) {
+            return false;
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        return !empty($body['success']);
     }
 
     /**
@@ -526,6 +596,15 @@ class STB_Academy_Core {
         $password = isset($params['password']) ? $params['password'] : '';
         $remember = !empty($params['remember']);
 
+        // Validar reCAPTCHA si está habilitado en producción
+        $recaptcha_token = isset($params['recaptcha_token']) ? $params['recaptcha_token'] : '';
+        if (!$this->verify_recaptcha($recaptcha_token)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Validación de seguridad reCAPTCHA fallida. Por favor recarga e inténtalo de nuevo.',
+            ), 400);
+        }
+
         if (empty($username) || empty($password)) {
             return new WP_REST_Response(array(
                 'success' => false,
@@ -604,6 +683,15 @@ class STB_Academy_Core {
         $email = isset($params['email']) ? sanitize_email($params['email']) : '';
         $phone = isset($params['phone']) ? sanitize_text_field($params['phone']) : '';
         $password = isset($params['password']) ? $params['password'] : '';
+
+        // Validar reCAPTCHA si está habilitado en producción
+        $recaptcha_token = isset($params['recaptcha_token']) ? $params['recaptcha_token'] : '';
+        if (!$this->verify_recaptcha($recaptcha_token)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Validación de seguridad reCAPTCHA fallida. Por favor recarga e inténtalo de nuevo.',
+            ), 400);
+        }
 
         if (empty($email) || empty($password) || empty($name)) {
             return new WP_REST_Response(array(
