@@ -246,8 +246,8 @@ class UserPreference {
 	 * @return string
 	 */
 	public function add_theme_attribute( $output ) {
-		$is_logged_in  = is_user_logged_in();
-		$is_tutor_page = tutor_utils()->is_dashboard_page() || tutor_utils()->is_learning_area();
+		$is_logged_in  = function_exists( 'is_user_logged_in' ) && \is_user_logged_in();
+		$is_tutor_page = function_exists( 'tutor_utils' ) && ( tutor_utils()->is_dashboard_page() || tutor_utils()->is_learning_area() );
 
 		if ( ! $is_logged_in || ! $is_tutor_page ) {
 			return $output;

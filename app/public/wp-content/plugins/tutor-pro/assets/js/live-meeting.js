@@ -1,0 +1,9 @@
+(()=>{var t={};// The module cache
+var e={};// The require function
+function i(r){// Check if module is in cache
+var a=e[r];if(a!==undefined){return a.exports}// Create a new module (and put it into the cache)
+var n=e[r]={exports:{}};// Execute the module function
+t[r](n,n.exports,i);// Return the exports of the module
+return n.exports}// webpack/runtime/rspack_version
+(()=>{i.rv=()=>"1.6.5"})();// webpack/runtime/rspack_unique_id
+(()=>{i.ruid="bundler=rspack@1.6.5"})();var r=t=>({props:t,$el:null,isStarted:t.isStarted||false,isExpired:t.isExpired||false,time:{days:"00",hours:"00",minutes:"00",seconds:"00"},animationFrame:null,init(){if(!this.$el||!this.props.startDate){return}this.syncMeetingState();this.countdown()},syncMeetingState(){var t=new Date(this.props.startDate).getTime();if(isNaN(t)){return false}var e=t+Number(this.props.duration)*60*1e3;var i=Date.now();this.isExpired=i>=e;this.isStarted=i>=t&&!this.isExpired;return true},countdown(){var t=()=>{var e=new Date(this.props.startDate).getTime();if(!this.syncMeetingState()||isNaN(e)){return}var i=e-Date.now();if(this.isExpired){return}this.time.days="00";this.time.hours="00";this.time.minutes="00";this.time.seconds="00";if(this.animationFrame){cancelAnimationFrame(this.animationFrame)}if(i>0){var r=Math.floor(i/(1e3*60*60*24));var a=Math.floor(i%(1e3*60*60*24)/(1e3*60*60));var n=Math.floor(i%(1e3*60*60)/(1e3*60));var s=Math.floor(i%(1e3*60)/1e3);this.time.days=r.toString().padStart(2,"0");this.time.hours=a.toString().padStart(2,"0");this.time.minutes=n.toString().padStart(2,"0");this.time.seconds=s.toString().padStart(2,"0")}this.animationFrame=requestAnimationFrame(t)};this.animationFrame=requestAnimationFrame(t)}});var a=()=>{window.TutorComponentRegistry.register({type:"component",meta:{name:"meeting",component:r}});window.TutorComponentRegistry.initWithAlpine(window.Alpine)};document.addEventListener("alpine:init",()=>{a()})})();
