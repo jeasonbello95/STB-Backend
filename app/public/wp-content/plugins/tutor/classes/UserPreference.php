@@ -219,21 +219,39 @@ class UserPreference {
 	}
 
 	/**
-	 * Apply user preference inline styles (font scale, background color).
+	 * Apply user preference inline styles (font scale, background color, dark theme).
 	 *
 	 * @since 4.0.0
 	 *
 	 * @return void
 	 */
 	public function apply_inline_styles() {
-		if ( ! tutor_utils()->is_dashboard_page() && ! tutor_utils()->is_learning_area() ) {
-			return;
+		$global_theme = function_exists( 'tutor_utils' ) ? tutor_utils()->get_option( 'default_theme', 'dark' ) : 'dark';
+		$theme        = ! empty( $global_theme ) ? $global_theme : 'dark';
+
+		if ( function_exists( 'is_user_logged_in' ) && \is_user_logged_in() ) {
+			$prefs = $this->get_preferences();
+			if ( ! empty( $prefs['theme'] ) && in_array( $prefs['theme'], self::THEMES, true ) ) {
+				$theme = $prefs['theme'];
+			}
 		}
-		$prefs          = $this->get_preferences();
+
+		if ( self::THEME_SYSTEM === $theme ) {
+			$theme = 'dark';
+		}
+
 		$font_scale     = isset( $prefs['font_scale'] ) ? (int) $prefs['font_scale'] : self::DEFAULT_FONT_SCALE;
 		$base_font_size = 16;
 		$font_size      = ( $base_font_size * $font_scale ) / self::DEFAULT_FONT_SCALE;
-		echo '<style>html { background-color: var(--tutor-surface-base); } :root { font-size: ' . esc_attr( $font_size ) . 'px; }</style>';
+
+		echo '<script>(function(){ if(document.documentElement){ document.documentElement.setAttribute("data-tutor-theme", "' . esc_js( $theme ) . '"); document.documentElement.classList.add("' . esc_js( $theme ) . '"); } })();</script>';
+		echo '<style>
+			html, body, .tutor-wrap, .tutor-dashboard-body, .tutor-dashboard-left-menu, .tutor-learning-area, .tutor-course-filter-wrap {
+				background-color: var(--tutor-surface-base, #161b26) !important;
+				color: var(--tutor-text-primary, #f0f1f1) !important;
+			}
+			:root { font-size: ' . esc_attr( $font_size ) . 'px; }
+		</style>';
 	}
 
 	/**
@@ -246,47 +264,46 @@ class UserPreference {
 	 * @return string
 	 */
 	public function add_theme_attribute( $output ) {
-		$is_logged_in  = function_exists( 'is_user_logged_in' ) && \is_user_logged_in();
-		$is_tutor_page = function_exists( 'tutor_utils' ) && ( tutor_utils()->is_dashboard_page() || tutor_utils()->is_learning_area() );
+		$global_theme = function_exists( 'tutor_utils' ) ? tutor_utils()->get_option( 'default_theme', 'dark' ) : 'dark';
+		$theme        = ! empty( $global_theme ) ? $global_theme : 'dark';
 
-		if ( ! $is_logged_in || ! $is_tutor_page ) {
-			return $output;
+		if ( function_exists( 'is_user_logged_in' ) && \is_user_logged_in() ) {
+			$prefs = $this->get_preferences();
+			if ( ! empty( $prefs['theme'] ) && in_array( $prefs['theme'], self::THEMES, true ) ) {
+				$theme = $prefs['theme'];
+			}
 		}
 
-		$prefs = $this->get_preferences();
-		$theme = isset( $prefs['theme'] ) ? (string) $prefs['theme'] : self::DEFAULT_THEME;
-		if ( ! in_array( $theme, self::THEMES, true ) ) {
-			$theme = self::DEFAULT_THEME;
+		if ( self::THEME_SYSTEM === $theme ) {
+			$theme = 'dark';
 		}
 
-		$vision = isset( $prefs['vision'] ) ? (string) $prefs['vision'] : self::VISION_NORMAL;
-		if ( ! in_array( $vision, self::VISIONS, true ) ) {
-			$vision = self::VISION_NORMAL;
-		}
-
-		$contrast      = isset( $prefs['contrast'] ) ? (string) $prefs['contrast'] : '';
-		$contrast_attr = '';
-		if ( self::CONTRAST_HIGH === $contrast ) {
-			$contrast_attr = ' data-tutor-contrast="' . esc_attr( self::CONTRAST_HIGH ) . '"';
-		}
-
-		$motion_effects = isset( $prefs['motion_effects'] ) ? (string) $prefs['motion_effects'] : self::MOTION_EFFECTS_AUTO;
-		if ( ! in_array( $motion_effects, self::MOTION_EFFECTS_OPTIONS, true ) ) {
-			$motion_effects = self::MOTION_EFFECTS_AUTO;
-		}
-
+		$vision_attr         = '';
+		$contrast_attr       = '';
 		$motion_effects_attr = '';
-		if ( self::MOTION_EFFECTS_REDUCE === $motion_effects ) {
-			$motion_effects_attr = ' data-tutor-motion="reduce"';
-		} elseif ( self::MOTION_EFFECTS_AUTO === $motion_effects ) {
-			$motion_effects_attr = ' data-tutor-motion="auto"';
+
+		if ( ! empty( $prefs ) ) {
+			$vision = isset( $prefs['vision'] ) ? (string) $prefs['vision'] : self::VISION_NORMAL;
+			if ( self::VISION_NORMAL !== $vision && in_array( $vision, self::VISIONS, true ) ) {
+				$vision_attr = ' data-tutor-vision="' . esc_attr( $vision ) . '"';
+			}
+
+			$contrast = isset( $prefs['contrast'] ) ? (string) $prefs['contrast'] : '';
+			if ( self::CONTRAST_HIGH === $contrast ) {
+				$contrast_attr = ' data-tutor-contrast="' . esc_attr( self::CONTRAST_HIGH ) . '"';
+			}
+
+			$motion_effects = isset( $prefs['motion_effects'] ) ? (string) $prefs['motion_effects'] : self::MOTION_EFFECTS_AUTO;
+			if ( self::MOTION_EFFECTS_REDUCE === $motion_effects ) {
+				$motion_effects_attr = ' data-tutor-motion="reduce"';
+			}
 		}
 
-		$vision_attr = self::VISION_NORMAL !== $vision
-			? ' data-tutor-vision="' . esc_attr( $vision ) . '"'
-			: '';
+		if ( strpos( $output, 'data-tutor-theme' ) === false ) {
+			$output .= ' data-tutor-theme="' . esc_attr( $theme ) . '"' . $vision_attr . $contrast_attr . $motion_effects_attr;
+		}
 
-		return $output . ' data-tutor-theme="' . esc_attr( $theme ) . '"' . $vision_attr . $contrast_attr . $motion_effects_attr;
+		return $output;
 	}
 
 	/**

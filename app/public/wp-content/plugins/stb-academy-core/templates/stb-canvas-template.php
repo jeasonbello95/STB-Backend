@@ -5,7 +5,7 @@
  */
 ?>
 <!DOCTYPE html>
-<html <?php language_attributes(); ?> class="dark">
+<html <?php language_attributes(); ?> class="dark" data-tutor-theme="dark">
 <head>
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

@@ -59,6 +59,9 @@ class STB_Academy_Core {
         add_action('admin_init', array($this, 'restrict_wp_admin_access'));
         add_action('after_setup_theme', array($this, 'hide_admin_bar_for_students'));
         add_filter('login_redirect', array($this, 'custom_login_redirect'), 99, 3);
+
+        // Forzar tema oscuro de Tutor LMS en todo el sitio
+        add_action('wp_head', array($this, 'inject_dark_theme_head'), 1);
     }
 
     /**
@@ -1006,6 +1009,42 @@ class STB_Academy_Core {
             'success'  => '98%',
             'support'  => '24/7',
         ));
+    }
+
+    /**
+     * Inyecta la configuración del tema oscuro de Tutor LMS y STB Academy
+     * Asegura que el atributo data-tutor-theme="dark" y clase "dark" se apliquen instantáneamente
+     */
+    public function inject_dark_theme_head() {
+        ?>
+        <script>
+            (function() {
+                try {
+                    document.documentElement.setAttribute('data-tutor-theme', 'dark');
+                    document.documentElement.classList.add('dark');
+                    if (document.body) {
+                        document.body.setAttribute('data-tutor-theme', 'dark');
+                        document.body.classList.add('dark');
+                    }
+                } catch(e) {}
+            })();
+        </script>
+        <style>
+            :root, html, body {
+                color-scheme: dark !important;
+            }
+            html[data-tutor-theme="dark"],
+            body[data-tutor-theme="dark"],
+            .tutor-wrap,
+            .tutor-dashboard-body,
+            .tutor-dashboard-left-menu,
+            .tutor-learning-area,
+            .tutor-course-filter-wrap {
+                background-color: var(--tutor-surface-base, #161b26) !important;
+                color: var(--tutor-text-primary, #f0f1f1) !important;
+            }
+        </style>
+        <?php
     }
 }
 
