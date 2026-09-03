@@ -1044,18 +1044,75 @@ class STB_Academy_Core {
                 color: var(--tutor-text-primary, #f0f1f1) !important;
             }
             /* Estilos para el botón interactivo de regreso al inicio */
-            .stb-back-home-btn, .stb-top-back-btn {
+            .stb-dashboard-sidebar-header {
+                padding: 14px 12px 10px;
+                margin-bottom: 8px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .stb-sidebar-nav-back {
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                text-decoration: none !important;
+                padding: 6px 8px !important;
+                border-radius: 10px !important;
+                background: rgba(255, 255, 255, 0.04) !important;
+                border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                transition: all 0.2s ease !important;
+            }
+            .stb-sidebar-nav-back:hover {
+                background: rgba(0, 240, 255, 0.1) !important;
+                border-color: rgba(0, 240, 255, 0.35) !important;
+            }
+            .stb-sidebar-nav-back:hover .stb-back-icon {
+                background: rgba(0, 240, 255, 0.25) !important;
+                color: #00F0FF !important;
+                transform: translateX(-2px);
+            }
+            .stb-back-icon {
+                width: 26px;
+                height: 26px;
+                min-width: 26px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 7px;
+                background: rgba(255, 255, 255, 0.08);
+                color: #ffffff;
+                transition: all 0.2s ease;
+            }
+            .stb-brand-icon {
+                width: 18px;
+                height: 18px;
+                min-width: 18px;
+                object-fit: contain;
+                border-radius: 4px;
+            }
+            .stb-brand-label {
+                font-size: 13px !important;
+                font-weight: 700 !important;
+                color: #ffffff !important;
+                letter-spacing: -0.01em !important;
+                white-space: nowrap !important;
+                line-height: 1 !important;
+            }
+            .stb-brand-label .stb-cyan {
+                color: #00F0FF !important;
+            }
+            .stb-top-back-btn {
                 cursor: pointer;
                 transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
             }
-            .stb-back-home-btn:hover, .stb-top-back-btn:hover {
+            .stb-top-back-btn:hover {
                 background: rgba(0, 240, 255, 0.15) !important;
                 border-color: rgba(0, 240, 255, 0.5) !important;
                 color: #00F0FF !important;
-                transform: translateX(-3px);
+                transform: translateX(-2px);
                 box-shadow: 0 0 12px rgba(0, 240, 255, 0.25) !important;
             }
-            .stb-back-home-btn:hover svg, .stb-top-back-btn:hover svg {
+            .stb-top-back-btn:hover svg {
                 stroke: #00F0FF !important;
             }
         </style>

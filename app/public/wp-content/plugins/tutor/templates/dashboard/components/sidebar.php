@@ -40,19 +40,16 @@ $dashboard_pages     = tutor_utils()->tutor_dashboard_nav_ui_items();
 
 ?>
 <div class="tutor-dashboard-sidebar">
-	<div class="stb-dashboard-sidebar-header" style="display: flex; align-items: center; gap: 12px; padding: 16px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 12px;">
-		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="stb-back-home-btn" title="<?php esc_attr_e( 'Volver al Inicio', 'tutor' ); ?>" style="width: 38px; height: 38px; min-width: 38px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(255, 255, 255, 0.06); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.12); text-decoration: none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left">
-				<path d="m12 19-7-7 7-7"></path>
-				<path d="M19 12H5"></path>
-			</svg>
-		</a>
-		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="tutor-dashboard-sidebar-logo" style="display: flex; align-items: center; gap: 10px; text-decoration: none; flex-grow: 1; min-width: 0;">
-			<img src="<?php echo esc_url( home_url( '/imagenes/favicon.png' ) ); ?>" alt="STB Academy" style="width: 26px; height: 26px; object-fit: contain; flex-shrink: 0;" onerror="this.style.display='none';">
-			<div style="display: flex; flex-direction: column; overflow: hidden; white-space: nowrap;">
-				<span style="font-weight: 700; font-size: 15px; color: #ffffff; letter-spacing: -0.02em; line-height: 1.2;">STB <span style="color: #00F0FF;">Academy</span></span>
-				<span style="font-size: 11px; color: #94a3b8; font-weight: 500; line-height: 1.2;">Volver al Inicio</span>
-			</div>
+	<div class="stb-dashboard-sidebar-header">
+		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="stb-sidebar-nav-back" title="<?php esc_attr_e( 'Volver al Inicio', 'tutor' ); ?>">
+			<span class="stb-back-icon">
+				<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<path d="m12 19-7-7 7-7"></path>
+					<path d="M19 12H5"></path>
+				</svg>
+			</span>
+			<img src="<?php echo esc_url( home_url( '/imagenes/favicon.png' ) ); ?>" alt="STB" class="stb-brand-icon" onerror="this.style.display='none';">
+			<span class="stb-brand-label">STB <span class="stb-cyan">Academy</span></span>
 		</a>
 	</div>
 	<div class="tutor-dashboard-sidebar-nav" role="navigation">
