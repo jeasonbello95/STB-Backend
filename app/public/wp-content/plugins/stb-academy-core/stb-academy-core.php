@@ -62,6 +62,14 @@ class STB_Academy_Core {
 
         // Forzar tema oscuro de Tutor LMS en todo el sitio
         add_action('wp_head', array($this, 'inject_dark_theme_head'), 1);
+
+        // Inyectar el Favicon oficial de STB Academy en todas las vistas (Tutor LMS, Frontend, Admin y Login)
+        add_action('wp_head', array($this, 'inject_stb_favicon'), 1);
+        add_action('admin_head', array($this, 'inject_stb_favicon'), 1);
+        add_action('login_head', array($this, 'inject_stb_favicon'), 1);
+        add_filter('get_site_icon_url', array($this, 'filter_site_icon_url'), 99, 3);
+        add_filter('site_icon_meta_tags', array($this, 'filter_site_icon_meta_tags'), 99, 1);
+        add_action('admin_head', array($this, 'style_tutor_admin_menu_icon'));
     }
 
     /**
@@ -1177,6 +1185,57 @@ class STB_Academy_Core {
             }
             .stb-top-back-btn:hover svg {
                 stroke: #00F0FF !important;
+            }
+        </style>
+        <?php
+    }
+
+    /**
+     * Inyecta las etiquetas de Favicon oficial de STB Academy
+     */
+    public function inject_stb_favicon() {
+        $favicon_url = esc_url(home_url('/imagenes/favicon.png'));
+        echo '<link rel="icon" type="image/png" href="' . $favicon_url . '" />' . "\n";
+        echo '<link rel="shortcut icon" type="image/png" href="' . $favicon_url . '" />' . "\n";
+        echo '<link rel="apple-touch-icon" href="' . $favicon_url . '" />' . "\n";
+    }
+
+    /**
+     * Filtra la URL del favicon oficial del sitio de WordPress
+     */
+    public function filter_site_icon_url($url, $size = 512, $blog_id = 0) {
+        return esc_url(home_url('/imagenes/favicon.png'));
+    }
+
+    /**
+     * Filtra los meta tags del icono del sitio para Tutor LMS y WordPress
+     */
+    public function filter_site_icon_meta_tags($meta_tags) {
+        $favicon_url = esc_url(home_url('/imagenes/favicon.png'));
+        return array(
+            sprintf('<link rel="icon" href="%s" sizes="32x32" />', $favicon_url),
+            sprintf('<link rel="icon" href="%s" sizes="192x192" />', $favicon_url),
+            sprintf('<link rel="apple-touch-icon" href="%s" />', $favicon_url),
+            sprintf('<meta name="msapplication-TileImage" content="%s" />', $favicon_url),
+        );
+    }
+
+    /**
+     * Cambia el icono del menú de Tutor LMS en el panel de administración por el favicon de STB
+     */
+    public function style_tutor_admin_menu_icon() {
+        $favicon_url = esc_url(home_url('/imagenes/favicon.png'));
+        ?>
+        <style>
+            #toplevel_page_tutor .wp-menu-image img,
+            #toplevel_page_tutor .wp-menu-image svg {
+                display: none !important;
+            }
+            #toplevel_page_tutor .wp-menu-image {
+                background-image: url('<?php echo $favicon_url; ?>') !important;
+                background-repeat: no-repeat !important;
+                background-position: center !important;
+                background-size: 18px 18px !important;
             }
         </style>
         <?php

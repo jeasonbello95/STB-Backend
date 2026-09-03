@@ -47,6 +47,7 @@ $is_instructor_view = User::is_instructor_view();
 					<path d="m12 19-7-7 7-7"></path>
 					<path d="M19 12H5"></path>
 				</svg>
+				<img src="<?php echo esc_url( home_url( '/imagenes/favicon.png' ) ); ?>" alt="STB" style="width: 16px; height: 16px; object-fit: contain; border-radius: 3px;" onerror="this.style.display='none';">
 				<span class="stb-back-label" style="letter-spacing: -0.01em;">Ir al Inicio</span>
 			</a>
 			<div>
