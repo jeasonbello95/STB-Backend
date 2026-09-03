@@ -69,7 +69,8 @@ class LessonModel {
 	 */
 	public function get_lesson_count_by_course( $course_id = 0 ) {
 		$course_id = tutor_utils()->get_post_id( $course_id );
-		return count( tutor_utils()->get_course_content_ids_by( tutor()->lesson_post_type, tutor()->course_post_type, $course_id ) );
+		$ids       = tutor_utils()->get_course_content_ids_by( tutor()->lesson_post_type, tutor()->course_post_type, $course_id );
+		return is_array( $ids ) ? count( $ids ) : 0;
 	}
 
 	/**

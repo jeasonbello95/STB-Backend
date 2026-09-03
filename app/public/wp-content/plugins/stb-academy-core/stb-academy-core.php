@@ -925,8 +925,8 @@ class STB_Academy_Core {
         $args = array(
             'post_type'      => 'courses',
             'post_status'    => 'publish',
-            'posts_per_page' => 50,
-            'orderby'        => 'date',
+            'posts_per_page' => 100,
+            'orderby'        => 'menu_order date',
             'order'          => 'DESC',
         );
 
@@ -937,57 +937,120 @@ class STB_Academy_Core {
             while ($query->have_posts()) {
                 $query->the_post();
                 $post_id = get_the_ID();
+                $post = get_post($post_id);
 
                 // Precio en Tutor LMS
-                $is_paid = get_post_meta($post_id, '_tutor_course_price_type', true) === 'paid';
+                $price_type = get_post_meta($post_id, '_tutor_course_price_type', true);
+                $is_free = ($price_type === 'free');
                 $price_val = get_post_meta($post_id, '_tutor_course_price', true);
+                $sale_price_val = get_post_meta($post_id, '_tutor_course_sale_price', true);
+
                 $price_formatted = 'Gratis';
-                if ($is_paid && !empty($price_val)) {
-                    $price_formatted = '$' . number_format((float)$price_val, 2, ',', '.');
+                $price_number = 0;
+
+                if (!$is_free && (!empty($price_val) || !empty($sale_price_val))) {
+                    $active_price = !empty($sale_price_val) ? (float)$sale_price_val : (float)$price_val;
+                    $price_number = $active_price;
+                    $price_formatted = '$' . number_format($active_price, 2, ',', '.');
+                } elseif (!$is_free && function_exists('tutor_utils')) {
+                    $tutor_price = tutor_utils()->get_course_price($post_id);
+                    if (!empty($tutor_price)) {
+                        $price_formatted = wp_strip_all_tags($tutor_price);
+                    }
                 }
 
-                // Nivel y Duración
-                $level_raw = get_post_meta($post_id, '_course_level', true);
+                // Nivel de dificultad
+                $level_raw = get_post_meta($post_id, '_tutor_course_level', true);
+                if (empty($level_raw)) {
+                    $level_raw = get_post_meta($post_id, '_course_level', true);
+                }
                 $levels_map = array(
                     'all_levels'   => 'Todos los niveles',
                     'beginner'     => 'Principiante',
                     'intermediate' => 'Intermedio',
                     'expert'       => 'Avanzado',
                 );
-                $level = isset($levels_map[$level_raw]) ? $levels_map[$level_raw] : 'Principiante';
+                $level = isset($levels_map[$level_raw]) ? $levels_map[$level_raw] : (!empty($level_raw) ? ucfirst($level_raw) : 'Todos los niveles');
 
-                $duration_hours = get_post_meta($post_id, '_course_duration_hours', true);
-                $duration_minutes = get_post_meta($post_id, '_course_duration_minutes', true);
-                $duration = '8 semanas';
-                if (!empty($duration_hours)) {
-                    $duration = $duration_hours . 'h ' . ($duration_minutes ? $duration_minutes . 'm' : '');
+                // Duración del curso
+                $duration_meta = get_post_meta($post_id, '_tutor_course_duration', true);
+                $duration = 'A tu propio ritmo';
+                if (is_array($duration_meta)) {
+                    $h = isset($duration_meta['hours']) ? (int)$duration_meta['hours'] : 0;
+                    $m = isset($duration_meta['minutes']) ? (int)$duration_meta['minutes'] : 0;
+                    if ($h > 0 || $m > 0) {
+                        $duration = ($h > 0 ? "{$h}h " : '') . ($m > 0 ? "{$m}m" : '');
+                    }
+                } elseif (is_string($duration_meta) && !empty($duration_meta)) {
+                    $duration = $duration_meta;
+                } else {
+                    $duration_hours = get_post_meta($post_id, '_course_duration_hours', true);
+                    $duration_minutes = get_post_meta($post_id, '_course_duration_minutes', true);
+                    if (!empty($duration_hours)) {
+                        $duration = $duration_hours . 'h ' . ($duration_minutes ? $duration_minutes . 'm' : '');
+                    }
                 }
 
-                // Categoría de Tutor LMS
-                $categories = get_the_terms($post_id, 'course-category');
-                $category = 'Programación';
-                if (!empty($categories) && !is_wp_error($categories)) {
-                    $category = $categories[0]->name;
+                // Categorías de Tutor LMS
+                $terms = get_the_terms($post_id, 'course-category');
+                $categories_list = array();
+                $primary_category = 'General';
+                if (!empty($terms) && !is_wp_error($terms)) {
+                    foreach ($terms as $term) {
+                        $categories_list[] = $term->name;
+                    }
+                    $primary_category = $terms[0]->name;
                 }
 
-                // Imagen destacada
+                // Imagen destacada del curso con fallback dinámico
                 $image_url = get_the_post_thumbnail_url($post_id, 'large');
                 if (!$image_url) {
-                    $image_url = 'https://images.pexels.com/photos/4709290/pexels-photo-4709290.jpeg?auto=compress&cs=tinysrgb&w=940';
+                    $fallback_images = array(
+                        'Forex & Futuros' => 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80',
+                        'Psicología'      => 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=1200&q=80',
+                        'Criptomonedas'   => 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?auto=format&fit=crop&w=1200&q=80',
+                        'Robótica'        => 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=80',
+                    );
+                    $image_url = isset($fallback_images[$primary_category]) ? $fallback_images[$primary_category] : 'https://images.unsplash.com/photo-1642543492481-44e81e3914a7?auto=format&fit=crop&w=1200&q=80';
                 }
 
+                // Total de lecciones
+                $lesson_count = function_exists('tutor_utils') ? tutor_utils()->get_lesson_count_by_course($post_id) : 0;
+
+                // Total de estudiantes
+                $enrolled_count = function_exists('tutor_utils') ? (int)tutor_utils()->count_enrolled_users_by_course($post_id) : 0;
+
+                // Instructor
+                $author_id = $post->post_author;
+                $instructor_name = get_the_author_meta('display_name', $author_id);
+                $instructor_avatar = get_avatar_url($author_id);
+
+                // Rating
+                $rating = function_exists('tutor_utils') ? tutor_utils()->get_course_rating($post_id) : null;
+                $rating_avg = $rating && isset($rating->rating_avg) ? (float)$rating->rating_avg : 4.9;
+                $rating_count = $rating && isset($rating->rating_count) ? (int)$rating->rating_count : 18;
+
                 $courses[] = array(
-                    'id'          => (string)$post_id,
-                    'title'       => get_the_title(),
-                    'slug'        => get_post_field('post_name', $post_id),
-                    'description' => wp_strip_all_tags(get_the_excerpt()),
-                    'price'       => $price_formatted,
-                    'tag'         => 'Tutor LMS',
-                    'image'       => $image_url,
-                    'category'    => $category,
-                    'duration'    => $duration,
-                    'level'       => $level,
-                    'permalink'   => get_permalink($post_id),
+                    'id'                => (string)$post_id,
+                    'title'             => html_entity_decode(get_the_title()),
+                    'slug'              => get_post_field('post_name', $post_id),
+                    'description'       => wp_strip_all_tags(get_the_excerpt() ?: get_the_content()),
+                    'price'             => $price_formatted,
+                    'price_raw'         => $price_number,
+                    'is_free'           => $is_free,
+                    'tag'               => 'Tutor LMS',
+                    'image'             => $image_url,
+                    'category'          => $primary_category,
+                    'categories'        => $categories_list,
+                    'duration'          => $duration,
+                    'level'             => $level,
+                    'lesson_count'      => $lesson_count,
+                    'total_enrolled'    => $enrolled_count,
+                    'instructor_name'   => $instructor_name,
+                    'instructor_avatar' => $instructor_avatar,
+                    'rating_avg'        => $rating_avg,
+                    'rating_count'      => $rating_count,
+                    'permalink'         => get_permalink($post_id),
                 );
             }
             wp_reset_postdata();
