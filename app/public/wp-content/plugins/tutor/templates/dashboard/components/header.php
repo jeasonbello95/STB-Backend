@@ -41,13 +41,21 @@ $is_instructor_view = User::is_instructor_view();
 
 <div x-data="tutorHeader()" class="tutor-dashboard-header">
 	<div class="tutor-dashboard-header-inner">
-		<div class="tutor-dashboard-header-left">
-			<div class="tutor-h5 tutor-text-primary tutor-text-medium">
-				<span class="tutor-text-subdued">
-					<?php echo esc_html_x( 'Hi,', 'greetings', 'tutor' ); ?>
-				</span>
-				<?php echo esc_html( $display_name . ' 👋' ); ?>
-			</div>
+		<div class="tutor-dashboard-header-left" style="display: flex; align-items: center; gap: 14px;">
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="stb-top-back-btn" title="<?php esc_attr_e( 'Volver al Inicio', 'tutor' ); ?>" style="display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: #ffffff; font-size: 13px; font-weight: 500; text-decoration: none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left">
+					<path d="m12 19-7-7 7-7"></path>
+					<path d="M19 12H5"></path>
+				</svg>
+				<span class="stb-back-label" style="letter-spacing: -0.01em;">Ir al Inicio</span>
+			</a>
+			<div>
+				<div class="tutor-h5 tutor-text-primary tutor-text-medium" style="line-height: 1.2;">
+					<span class="tutor-text-subdued">
+						<?php echo esc_html_x( 'Hi,', 'greetings', 'tutor' ); ?>
+					</span>
+					<?php echo esc_html( $display_name . ' 👋' ); ?>
+				</div>
 			<?php
 			if ( $is_instructor_view ) :
 				$course_post_type       = apply_filters( 'tutor_dashboard_course_list_post_type', array( tutor()->course_post_type ) );

@@ -1043,6 +1043,21 @@ class STB_Academy_Core {
                 background-color: var(--tutor-surface-base, #161b26) !important;
                 color: var(--tutor-text-primary, #f0f1f1) !important;
             }
+            /* Estilos para el botón interactivo de regreso al inicio */
+            .stb-back-home-btn, .stb-top-back-btn {
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+            .stb-back-home-btn:hover, .stb-top-back-btn:hover {
+                background: rgba(0, 240, 255, 0.15) !important;
+                border-color: rgba(0, 240, 255, 0.5) !important;
+                color: #00F0FF !important;
+                transform: translateX(-3px);
+                box-shadow: 0 0 12px rgba(0, 240, 255, 0.25) !important;
+            }
+            .stb-back-home-btn:hover svg, .stb-top-back-btn:hover svg {
+                stroke: #00F0FF !important;
+            }
         </style>
         <?php
     }
