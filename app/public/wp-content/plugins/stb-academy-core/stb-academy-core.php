@@ -75,8 +75,10 @@ class STB_Academy_Core {
         add_filter('tutor_get_template_path', array($this, 'override_tutor_ecommerce_templates'), 99, 2);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_ecommerce_assets'), 20);
 
-        // Prevención de errores TypeError en addon de suscripciones de Tutor Pro para invitados
+        // Prevención de errores TypeError y Warnings en addon de suscripciones de Tutor Pro
         add_action('init', array($this, 'prevent_subscription_null_errors'), 1);
+        add_action('wp', array($this, 'prevent_subscription_null_errors'), 1);
+        add_action('template_redirect', array($this, 'prevent_subscription_null_errors'), 1);
         add_filter('is_course_purchasable', array($this, 'safe_is_course_purchasable_precheck'), 1, 2);
     }
 
@@ -1328,12 +1330,28 @@ class STB_Academy_Core {
     }
 
     /**
-     * Previene errores de tipo null en array_filter dentro del SubscriptionModel de Tutor Pro
+     * Previene errores de tipo null en array_filter y foreach dentro del SubscriptionModel de Tutor Pro
      */
     public function prevent_subscription_null_errors() {
         if (class_exists('\Tutor\Cache\TutorCache')) {
             \Tutor\Cache\TutorCache::set('get_user_active_subscriptions_0', array());
             \Tutor\Cache\TutorCache::set('get_user_active_subscriptions_', array());
+            $course_id = get_the_ID();
+            if ($course_id) {
+                \Tutor\Cache\TutorCache::set("bundle_ids_by_course_{$course_id}", array());
+            }
+        }
+
+        // Si el usuario no está logueado, remover el callback problemático de Tutor Pro Subscription
+        if (!is_user_logged_in()) {
+            global $wp_filter;
+            if (isset($wp_filter['is_course_purchasable']->callbacks[10])) {
+                foreach ($wp_filter['is_course_purchasable']->callbacks[10] as $key => $callback) {
+                    if (is_array($callback['function']) && is_object($callback['function'][0]) && get_class($callback['function'][0]) === 'TutorPro\Subscription\Controllers\FrontendController') {
+                        unset($wp_filter['is_course_purchasable']->callbacks[10][$key]);
+                    }
+                }
+            }
         }
     }
 
@@ -1341,10 +1359,25 @@ class STB_Academy_Core {
      * Asegura que el cache de suscripciones esté inicializado antes de comprobar si el curso es comprable
      */
     public function safe_is_course_purchasable_precheck($is_purchasable, $course_id) {
-        if (!is_user_logged_in() && class_exists('\Tutor\Cache\TutorCache')) {
+        if (class_exists('\Tutor\Cache\TutorCache')) {
             \Tutor\Cache\TutorCache::set('get_user_active_subscriptions_0', array());
             \Tutor\Cache\TutorCache::set('get_user_active_subscriptions_', array());
+            if ($course_id) {
+                \Tutor\Cache\TutorCache::set("bundle_ids_by_course_{$course_id}", array());
+            }
         }
+
+        if (!is_user_logged_in()) {
+            global $wp_filter;
+            if (isset($wp_filter['is_course_purchasable']->callbacks[10])) {
+                foreach ($wp_filter['is_course_purchasable']->callbacks[10] as $key => $callback) {
+                    if (is_array($callback['function']) && is_object($callback['function'][0]) && get_class($callback['function'][0]) === 'TutorPro\Subscription\Controllers\FrontendController') {
+                        unset($wp_filter['is_course_purchasable']->callbacks[10][$key]);
+                    }
+                }
+            }
+        }
+
         return $is_purchasable;
     }
 }
