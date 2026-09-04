@@ -174,15 +174,25 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                             <?php tutor_course_video(); ?>
                         </div>
                     <?php else : ?>
+                        <?php
+                        $course_thumb_src = get_the_post_thumbnail_url($course_id, 'full');
+                        if (empty($course_thumb_src) && function_exists('tutor_utils')) {
+                            $course_thumb_src = tutor_utils()->get_course_thumbnail_src($course_id);
+                        }
+                        if (empty($course_thumb_src)) {
+                            $course_thumb_src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80';
+                        }
+                        ?>
                         <div class="aspect-video relative overflow-hidden bg-slate-900">
-                            <?php if (has_post_thumbnail()) : ?>
-                                <?php the_post_thumbnail('large', array('class' => 'w-full h-full object-cover transition-transform duration-500 group-hover:scale-105')); ?>
-                            <?php else : ?>
-                                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#0B0F17] to-[#121A2A]">
-                                    <span class="text-5xl">⚡</span>
-                                </div>
-                            <?php endif; ?>
-                            <div class="absolute inset-0 bg-gradient-to-t from-[#070A0F] via-transparent to-transparent opacity-60"></div>
+                            <img src="<?php echo esc_url($course_thumb_src); ?>" alt="<?php the_title_attribute(); ?>" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                            <div class="absolute inset-0 bg-gradient-to-t from-[#070A0F] via-transparent to-transparent opacity-70"></div>
+                            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] font-mono text-white/90 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                                <span class="flex items-center gap-1.5 text-[#54B435] font-bold">
+                                    <span class="w-2 h-2 rounded-full bg-[#54B435] animate-pulse"></span>
+                                    STB MASTERCLASS
+                                </span>
+                                <span class="text-slate-300">HD 1080p</span>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
