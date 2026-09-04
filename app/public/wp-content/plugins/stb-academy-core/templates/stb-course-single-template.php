@@ -437,27 +437,38 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                                     </div>
                                 <?php endif; ?>
 
-                                <a href="<?php echo esc_url($lesson_url ?: '#'); ?>" class="w-full py-4 px-6 rounded-xl font-extrabold text-black bg-[#54B435] hover:bg-[#449926] transition-all shadow-[0_0_25px_rgba(84,180,53,0.4)] hover:shadow-[0_0_35px_rgba(84,180,53,0.6)] flex items-center justify-center gap-2 text-base">
-                                    <span>▶</span>
-                                    <span><?php echo $completed_percent > 0 ? 'Continuar Aprendiendo' : 'Comenzar a Aprender'; ?></span>
+                                <a href="<?php echo esc_url($lesson_url ?: '#'); ?>" class="stb-btn-glow group relative w-full py-4 px-6 rounded-xl font-black text-slate-950 uppercase tracking-wider text-base flex items-center justify-center gap-3 transition-all" style="text-decoration:none;">
+                                    <span class="relative z-10 text-xl leading-none">▶</span>
+                                    <span class="relative z-10"><?php echo $completed_percent > 0 ? 'Continuar Aprendiendo' : 'Comenzar a Aprender'; ?></span>
+                                    <svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1.5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                    </svg>
                                 </a>
 
                             <?php elseif ($is_purchasable && !$is_free) : ?>
                                 <!-- Purchasable: Add to Cart & Buy Now -->
                                 <?php if ($is_course_in_cart) : ?>
-                                    <a href="<?php echo esc_url($cart_page_url ?: '/cart/'); ?>" class="w-full py-3.5 px-6 rounded-xl font-bold text-cyan-300 bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 transition-all flex items-center justify-center gap-2 text-sm">
+                                    <a href="<?php echo esc_url($cart_page_url ?: '/cart/'); ?>" class="w-full py-4 px-6 rounded-xl font-bold text-cyan-300 bg-cyan-500/20 border border-cyan-500/50 hover:bg-cyan-500/30 transition-all flex items-center justify-center gap-2.5 text-sm shadow-[0_0_20px_rgba(0,240,255,0.25)]" style="text-decoration:none;">
                                         <span>🛒</span>
                                         <span>Ver Carrito de Compras</span>
+                                        <span class="text-xs">›</span>
                                     </a>
                                 <?php else : ?>
-                                    <button type="button" class="w-full py-4 px-6 rounded-xl font-extrabold text-black bg-[#54B435] hover:bg-[#449926] transition-all shadow-[0_0_25px_rgba(84,180,53,0.4)] hover:shadow-[0_0_35px_rgba(84,180,53,0.6)] flex items-center justify-center gap-2 text-base tutor-native-add-to-cart" data-course-id="<?php echo esc_attr($course_id); ?>" data-course-single>
-                                        <span>⚡</span>
-                                        <span>Añadir al Carrito</span>
+                                    <button type="button" class="stb-btn-glow group relative w-full py-4 px-6 rounded-xl font-black text-slate-950 uppercase tracking-wider text-base flex items-center justify-center gap-3 tutor-native-add-to-cart cursor-pointer" data-course-id="<?php echo esc_attr($course_id); ?>" data-course-single>
+                                        <span class="flex h-2.5 w-2.5 relative">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-black"></span>
+                                        </span>
+                                        <span class="relative z-10">Añadir al Carrito</span>
+                                        <svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1.5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                        </svg>
                                     </button>
                                 <?php endif; ?>
 
-                                <a href="<?php echo esc_url($buy_now_link); ?>" class="w-full py-3 px-6 rounded-xl font-semibold text-slate-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-2 text-sm">
-                                    <span>Comprar Ahora</span>
+                                <a href="<?php echo esc_url($buy_now_link); ?>" class="w-full py-3.5 px-6 rounded-xl font-bold text-slate-200 bg-slate-900/90 hover:bg-slate-800 border border-white/20 hover:border-[#54B435]/60 hover:text-[#54B435] transition-all flex items-center justify-center gap-2 text-sm shadow-lg hover:shadow-[0_0_20px_rgba(84,180,53,0.25)]" style="text-decoration:none;">
+                                    <span>⚡</span>
+                                    <span>Comprar Ahora con 1-Click</span>
                                 </a>
 
                             <?php else : ?>
@@ -466,8 +477,15 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                                     <?php wp_nonce_field(tutor()->nonce_action, tutor()->nonce); ?>
                                     <input type="hidden" name="tutor_course_id" value="<?php echo esc_attr($course_id); ?>">
                                     <input type="hidden" name="tutor_course_action" value="_tutor_course_enroll_now">
-                                    <button type="submit" class="w-full py-4 px-6 rounded-xl font-extrabold text-black bg-[#54B435] hover:bg-[#449926] transition-all shadow-[0_0_25px_rgba(84,180,53,0.4)] hover:shadow-[0_0_35px_rgba(84,180,53,0.6)] flex items-center justify-center gap-2 text-base tutor-enroll-course-button">
-                                        <span>Inscribirme Gratis</span>
+                                    <button type="submit" class="stb-btn-glow group relative w-full py-4 px-6 rounded-xl font-black text-slate-950 uppercase tracking-wider text-base flex items-center justify-center gap-3 tutor-enroll-course-button cursor-pointer">
+                                        <span class="flex h-2.5 w-2.5 relative">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-black"></span>
+                                        </span>
+                                        <span class="relative z-10">Inscribirme al Curso Gratis</span>
+                                        <svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1.5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                        </svg>
                                     </button>
                                 </form>
                             <?php endif; ?>
