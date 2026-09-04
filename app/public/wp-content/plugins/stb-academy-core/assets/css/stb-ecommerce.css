@@ -1,0 +1,239 @@
+/**
+ * STB Academy - Tutor LMS eCommerce Dark Theme Stylesheet
+ * Convierte todas las vistas de Carrito, Checkout y Pasarelas de Pago al diseño Cyber / Neon de React.
+ */
+
+/* ================= RESET & VARIABLES BASE ================= */
+:root {
+  --stb-bg-dark: #070A0F;
+  --stb-bg-card: #0E1420;
+  --stb-primary: #54B435;
+  --stb-primary-hover: #449926;
+  --stb-primary-glow: rgba(84, 180, 53, 0.4);
+  --stb-cyan: #00F0FF;
+  --stb-border: rgba(255, 255, 255, 0.1);
+  --stb-text-white: #ffffff;
+  --stb-text-muted: #94a3b8;
+}
+
+/* ================= CONTENEDORES Y ESTRUCTURA ================= */
+.stb-ecommerce-body,
+.tutor-cart-page,
+.tutor-checkout-page {
+  background-color: var(--stb-bg-dark) !important;
+  color: var(--stb-text-white) !important;
+  font-family: inherit;
+}
+
+.tutor-cart-page,
+.tutor-checkout-page {
+  padding: 1rem 0 3rem !important;
+}
+
+.tutor-cart-page-wrapper,
+.tutor-checkout-container {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+}
+
+/* ================= TARJETAS Y GLASSMORPHISM ================= */
+.tutor-cart-course-item,
+.tutor-checkout-billing,
+.tutor-checkout-details,
+.tutor-cart-empty-state {
+  background: rgba(14, 20, 32, 0.85) !important;
+  border: 1px solid var(--stb-border) !important;
+  border-radius: 1.5rem !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5) !important;
+}
+
+.tutor-cart-course-item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.tutor-cart-course-item:hover {
+  border-color: rgba(84, 180, 53, 0.4) !important;
+  box-shadow: 0 10px 30px rgba(84, 180, 53, 0.12) !important;
+  transform: translateY(-2px);
+}
+
+/* ================= ENLACES Y TEXTOS ================= */
+.tutor-cart-page a,
+.tutor-checkout-page a {
+  color: inherit;
+  text-decoration: none !important;
+}
+
+.tutor-cart-page a:hover,
+.tutor-checkout-page a:hover {
+  color: var(--stb-primary) !important;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #ffffff 30%, #54B435 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ================= INPUTS & SELECTS ================= */
+.tutor-form-control,
+.tutor-form-check-input,
+.stb-checkout-form input[type="text"],
+.stb-checkout-form input[type="email"],
+.stb-checkout-form input[type="tel"],
+.stb-checkout-form select {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border-radius: 0.75rem !important;
+  padding: 0.65rem 0.95rem !important;
+  font-size: 0.85rem !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+}
+
+.tutor-form-control:focus,
+.stb-checkout-form input:focus,
+.stb-checkout-form select:focus {
+  border-color: var(--stb-primary) !important;
+  box-shadow: 0 0 0 2px rgba(84, 180, 53, 0.25) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.stb-checkout-form select option {
+  background: #0E1420 !important;
+  color: #ffffff !important;
+}
+
+/* ================= MÉTODOS DE PAGO ================= */
+.tutor-checkout-payment-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 1rem 1.25rem !important;
+  border-radius: 1rem !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--stb-border) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.tutor-checkout-payment-item:hover,
+.tutor-checkout-payment-item:has(input:checked) {
+  background: rgba(84, 180, 53, 0.08) !important;
+  border-color: var(--stb-primary) !important;
+  box-shadow: 0 0 15px rgba(84, 180, 53, 0.2) !important;
+}
+
+.tutor-checkout-payment-item input[type="radio"] {
+  accent-color: var(--stb-primary) !important;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+/* ================= BOTONES ================= */
+.tutor-btn-primary,
+#tutor-checkout-pay-now-button,
+[data-cy="tutor-native-checkout-button"] {
+  background: var(--stb-primary) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+  border-radius: 1rem !important;
+  padding: 0.95rem 1.75rem !important;
+  border: none !important;
+  box-shadow: 0 0 25px var(--stb-primary-glow) !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-transform: none !important;
+}
+
+.tutor-btn-primary:hover,
+#tutor-checkout-pay-now-button:hover,
+[data-cy="tutor-native-checkout-button"]:hover {
+  background: var(--stb-primary-hover) !important;
+  box-shadow: 0 0 35px rgba(84, 180, 53, 0.6) !important;
+  transform: translateY(-1px);
+}
+
+.tutor-btn-primary:active,
+#tutor-checkout-pay-now-button:active {
+  transform: scale(0.98);
+}
+
+/* ================= ALERTAS Y MENSAJES ================= */
+.tutor-alert,
+.tutor-alert.tutor-warning,
+.tutor-alert.tutor-danger {
+  border-radius: 1rem !important;
+  padding: 1rem 1.25rem !important;
+  font-size: 0.85rem !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.tutor-alert.tutor-danger {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #fca5a5 !important;
+}
+
+.tutor-alert.tutor-warning {
+  background: rgba(234, 179, 8, 0.1) !important;
+  border: 1px solid rgba(234, 179, 8, 0.3) !important;
+  color: #fde047 !important;
+}
+
+/* ================= MODAL LOGIN TUTOR LMS ================= */
+.tutor-modal {
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.tutor-modal .tutor-modal-dialog {
+  background: #0E1420 !important;
+  border: 1px solid var(--stb-border) !important;
+  border-radius: 1.5rem !important;
+  color: #ffffff !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8) !important;
+}
+
+.tutor-modal .tutor-modal-title {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* ================= BOTONES DE CURSOS (LOOP & SINGLE) ================= */
+.tutor-btn-add-to-cart,
+.tutor-btn-buy-now,
+.tutor-course-in-cart {
+  border-radius: 0.75rem !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+  padding: 0.65rem 1.25rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.tutor-btn-add-to-cart,
+.tutor-btn-buy-now {
+  background: var(--stb-primary) !important;
+  color: #000000 !important;
+  box-shadow: 0 0 15px rgba(84, 180, 53, 0.3) !important;
+}
+
+.tutor-btn-add-to-cart:hover,
+.tutor-btn-buy-now:hover {
+  background: var(--stb-primary-hover) !important;
+  box-shadow: 0 0 25px rgba(84, 180, 53, 0.5) !important;
+}
+
+.tutor-course-in-cart {
+  background: rgba(0, 240, 255, 0.15) !important;
+  color: var(--stb-cyan) !important;
+  border: 1px solid rgba(0, 240, 255, 0.4) !important;
+}

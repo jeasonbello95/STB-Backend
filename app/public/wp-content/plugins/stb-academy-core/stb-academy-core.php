@@ -70,6 +70,10 @@ class STB_Academy_Core {
         add_filter('get_site_icon_url', array($this, 'filter_site_icon_url'), 99, 3);
         add_filter('site_icon_meta_tags', array($this, 'filter_site_icon_meta_tags'), 99, 1);
         add_action('admin_head', array($this, 'style_tutor_admin_menu_icon'));
+
+        // Integración de plantillas y estilos eCommerce STB Academy para Tutor LMS (Carrito, Checkout y Pagos)
+        add_filter('tutor_get_template_path', array($this, 'override_tutor_ecommerce_templates'), 99, 2);
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_ecommerce_assets'), 20);
     }
 
     /**
@@ -439,15 +443,16 @@ class STB_Academy_Core {
     }
 
     /**
-     * Registra la plantilla Canvas para páginas completas
+     * Registra las plantillas Canvas y eCommerce para páginas completas
      */
     public function register_page_templates($templates) {
         $templates['stb-canvas-template.php'] = 'STB Academy Canvas (Pantalla Completa React)';
+        $templates['stb-ecommerce-template.php'] = 'STB Academy eCommerce (Carrito & Checkout)';
         return $templates;
     }
 
     /**
-     * Intercepta la portada y rutas de React para renderizar la app en pantalla completa con Header nativo
+     * Intercepta la portada, rutas de React y páginas eCommerce para renderizar con el diseño oficial
      */
     public function load_page_templates($template) {
         if ($this->is_stb_react_route()) {
@@ -463,6 +468,14 @@ class STB_Academy_Core {
                 return $custom_template;
             }
         }
+
+        if ($this->is_tutor_ecommerce_page()) {
+            $ecom_template = STB_PLUGIN_DIR . 'templates/stb-ecommerce-template.php';
+            if (file_exists($ecom_template)) {
+                return $ecom_template;
+            }
+        }
+
         return $template;
     }
 
@@ -1239,6 +1252,67 @@ class STB_Academy_Core {
             }
         </style>
         <?php
+    }
+
+    /**
+     * Comprueba si la página actual es una vista de carrito, checkout o pagos de Tutor LMS
+     */
+    public function is_tutor_ecommerce_page() {
+        if (!function_exists('tutor_utils')) {
+            return false;
+        }
+
+        $cart_id     = (int) tutor_utils()->get_option('tutor_cart_page_id');
+        $checkout_id = (int) tutor_utils()->get_option('tutor_checkout_page_id');
+        $page_id     = get_the_ID();
+
+        if ($page_id && ($page_id === $cart_id || $page_id === $checkout_id)) {
+            return true;
+        }
+
+        $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+        $clean_uri   = trim(parse_url($request_uri, PHP_URL_PATH), '/');
+
+        if (
+            $clean_uri === 'cart' ||
+            $clean_uri === 'checkout' ||
+            strpos($clean_uri, 'cart/') === 0 ||
+            strpos($clean_uri, 'checkout/') === 0 ||
+            strpos($clean_uri, 'tutor-order-status') !== false ||
+            strpos($clean_uri, 'membership-pricing') !== false
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Encola los estilos visuales de modo oscuro Cyber / Neon para eCommerce
+     */
+    public function enqueue_ecommerce_assets() {
+        if ($this->is_tutor_ecommerce_page() || (function_exists('tutor') && is_single() && get_post_type() === tutor()->course_post_type)) {
+            $css_file = STB_PLUGIN_DIR . 'assets/css/stb-ecommerce.css';
+            if (file_exists($css_file)) {
+                wp_enqueue_style(
+                    'stb-ecommerce-styles',
+                    STB_PLUGIN_URL . 'assets/css/stb-ecommerce.css',
+                    array(),
+                    filemtime($css_file)
+                );
+            }
+        }
+    }
+
+    /**
+     * Sobrescribe las plantillas nativas de Tutor LMS para Carrito, Checkout y Detalles
+     */
+    public function override_tutor_ecommerce_templates($template_location, $template) {
+        $custom_path = STB_PLUGIN_DIR . 'templates/tutor/' . str_replace('.', DIRECTORY_SEPARATOR, $template) . '.php';
+        if (file_exists($custom_path)) {
+            return $custom_path;
+        }
+        return $template_location;
     }
 }
 
