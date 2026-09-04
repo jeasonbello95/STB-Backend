@@ -74,6 +74,10 @@ class STB_Academy_Core {
         // Integración de plantillas y estilos eCommerce STB Academy para Tutor LMS (Carrito, Checkout y Pagos)
         add_filter('tutor_get_template_path', array($this, 'override_tutor_ecommerce_templates'), 99, 2);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_ecommerce_assets'), 20);
+
+        // Prevención de errores TypeError en addon de suscripciones de Tutor Pro para invitados
+        add_action('init', array($this, 'prevent_subscription_null_errors'), 1);
+        add_filter('is_course_purchasable', array($this, 'safe_is_course_purchasable_precheck'), 1, 2);
     }
 
     /**
@@ -320,7 +324,7 @@ class STB_Academy_Core {
      * Encola los assets de React y estilos Tailwind en rutas STB y eCommerce de Tutor LMS
      */
     public function enqueue_react_assets() {
-        if ($this->is_stb_react_route() || $this->is_tutor_ecommerce_page()) {
+        if ($this->is_stb_react_route() || $this->is_tutor_ecommerce_page() || (function_exists('tutor') && is_singular(tutor()->course_post_type))) {
             $assets = $this->get_vite_assets();
 
             if (!empty($assets['css']) && file_exists(STB_PLUGIN_DIR . $assets['css'])) {
@@ -448,6 +452,7 @@ class STB_Academy_Core {
     public function register_page_templates($templates) {
         $templates['stb-canvas-template.php'] = 'STB Academy Canvas (Pantalla Completa React)';
         $templates['stb-ecommerce-template.php'] = 'STB Academy eCommerce (Carrito & Checkout)';
+        $templates['stb-course-single-template.php'] = 'STB Academy Curso Individual (Dark Cyber)';
         return $templates;
     }
 
@@ -473,6 +478,13 @@ class STB_Academy_Core {
             $ecom_template = STB_PLUGIN_DIR . 'templates/stb-ecommerce-template.php';
             if (file_exists($ecom_template)) {
                 return $ecom_template;
+            }
+        }
+
+        if (function_exists('tutor') && (is_singular(tutor()->course_post_type) || is_singular('courses'))) {
+            $course_template = STB_PLUGIN_DIR . 'templates/stb-course-single-template.php';
+            if (file_exists($course_template)) {
+                return $course_template;
             }
         }
 
@@ -1305,7 +1317,7 @@ class STB_Academy_Core {
     }
 
     /**
-     * Sobrescribe las plantillas nativas de Tutor LMS para Carrito, Checkout y Detalles
+     * Sobrescribe las plantillas nativas de Tutor LMS para Carrito, Checkout, Detalles y Cursos
      */
     public function override_tutor_ecommerce_templates($template_location, $template) {
         $custom_path = STB_PLUGIN_DIR . 'templates/tutor/' . str_replace('.', DIRECTORY_SEPARATOR, $template) . '.php';
@@ -1313,6 +1325,27 @@ class STB_Academy_Core {
             return $custom_path;
         }
         return $template_location;
+    }
+
+    /**
+     * Previene errores de tipo null en array_filter dentro del SubscriptionModel de Tutor Pro
+     */
+    public function prevent_subscription_null_errors() {
+        if (class_exists('\Tutor\Cache\TutorCache')) {
+            \Tutor\Cache\TutorCache::set('get_user_active_subscriptions_0', array());
+            \Tutor\Cache\TutorCache::set('get_user_active_subscriptions_', array());
+        }
+    }
+
+    /**
+     * Asegura que el cache de suscripciones esté inicializado antes de comprobar si el curso es comprable
+     */
+    public function safe_is_course_purchasable_precheck($is_purchasable, $course_id) {
+        if (!is_user_logged_in() && class_exists('\Tutor\Cache\TutorCache')) {
+            \Tutor\Cache\TutorCache::set('get_user_active_subscriptions_0', array());
+            \Tutor\Cache\TutorCache::set('get_user_active_subscriptions_', array());
+        }
+        return $is_purchasable;
     }
 }
 
