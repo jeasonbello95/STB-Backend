@@ -317,10 +317,10 @@ class STB_Academy_Core {
     }
 
     /**
-     * Encola los assets de React sólo en la portada o rutas de STB Academy
+     * Encola los assets de React y estilos Tailwind en rutas STB y eCommerce de Tutor LMS
      */
     public function enqueue_react_assets() {
-        if ($this->is_stb_react_route()) {
+        if ($this->is_stb_react_route() || $this->is_tutor_ecommerce_page()) {
             $assets = $this->get_vite_assets();
 
             if (!empty($assets['css']) && file_exists(STB_PLUGIN_DIR . $assets['css'])) {
@@ -332,7 +332,7 @@ class STB_Academy_Core {
                 );
             }
 
-            if (!empty($assets['js']) && file_exists(STB_PLUGIN_DIR . $assets['js'])) {
+            if ($this->is_stb_react_route() && !empty($assets['js']) && file_exists(STB_PLUGIN_DIR . $assets['js'])) {
                 wp_enqueue_script(
                     'stb-react-bundle',
                     STB_PLUGIN_URL . $assets['js'],
