@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TutorCache {
 
-	public static function get( $key, $default = null ) {
+	public static function get( $key, $default = false ) {
 		$cached = wp_cache_get( $key, 'tutor_cache' );
 		return false !== $cached ? $cached : $default;
 	}

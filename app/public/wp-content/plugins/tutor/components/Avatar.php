@@ -169,7 +169,8 @@ class Avatar extends BaseComponent {
 	 *
 	 * @return $this
 	 */
-	public function type( string $type ): self {
+	public function type( ?string $type = 'image' ): self {
+		$type = $type ?? 'image';
 		$this->type = in_array( $type, array( 'image', 'initials' ), true ) ? $type : 'image';
 		return $this;
 	}
@@ -179,12 +180,12 @@ class Avatar extends BaseComponent {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @param string $shape Avatar shape.
+	 * @param string|null $shape Avatar shape.
 	 *
 	 * @return $this
 	 */
-	public function shape( string $shape = '' ): self {
-		$this->shape = $shape;
+	public function shape( ?string $shape = '' ): self {
+		$this->shape = $shape ?? '';
 		return $this;
 	}
 
@@ -193,11 +194,11 @@ class Avatar extends BaseComponent {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @param string $src Image URL.
+	 * @param string|null $src Image URL.
 	 * @return $this
 	 */
-	public function src( string $src ): self {
-		$this->src = esc_url_raw( $src );
+	public function src( ?string $src = '' ): self {
+		$this->src = $src ? esc_url_raw( $src ) : '';
 		return $this;
 	}
 
@@ -206,11 +207,11 @@ class Avatar extends BaseComponent {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @param string $initials User initials.
+	 * @param string|null $initials User initials.
 	 * @return $this
 	 */
-	public function initials( string $initials ): self {
-		$this->initials = strtoupper( sanitize_text_field( $initials ) );
+	public function initials( ?string $initials = '' ): self {
+		$this->initials = $initials ? strtoupper( sanitize_text_field( $initials ) ) : '';
 		return $this;
 	}
 
@@ -219,11 +220,11 @@ class Avatar extends BaseComponent {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @param string $alt Alt text.
+	 * @param string|null $alt Alt text.
 	 * @return $this
 	 */
-	public function alt( string $alt ): self {
-		$this->alt = $alt;
+	public function alt( ?string $alt = '' ): self {
+		$this->alt = $alt ?? '';
 		return $this;
 	}
 
@@ -244,13 +245,13 @@ class Avatar extends BaseComponent {
 		$cache_key  = 'avatar_component_user_data_' . $user_id;
 		$cache_data = TutorCache::get( $cache_key );
 
-		if ( false !== $cache_data ) {
-			if ( $cache_data['src'] ) {
+		if ( ! empty( $cache_data ) && is_array( $cache_data ) ) {
+			if ( ! empty( $cache_data['src'] ) ) {
 				$this->src( $cache_data['src'] );
 			}
-			$this->type( $cache_data['type'] );
-			$this->initials( $cache_data['initials'] );
-			$this->alt( $cache_data['alt'] );
+			$this->type( $cache_data['type'] ?? 'image' );
+			$this->initials( $cache_data['initials'] ?? '' );
+			$this->alt( $cache_data['alt'] ?? '' );
 			return $this;
 		}
 
