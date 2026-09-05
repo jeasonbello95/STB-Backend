@@ -35,7 +35,7 @@ if (!defined('ABSPATH')) {
     ?>
 
     <!-- Contenedor Principal eCommerce -->
-    <main class="stb-ecommerce-main flex-grow pt-28 pb-20 relative z-10">
+    <main class="stb-ecommerce-main flex-grow relative z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Barra de Retorno y Estado -->
             <div class="mb-6 flex items-center justify-between">

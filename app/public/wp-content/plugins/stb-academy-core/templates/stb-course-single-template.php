@@ -66,6 +66,23 @@ $completed_percent = $course_progress ? $course_progress['completed_percent'] : 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php the_title(); ?> | STB Academy</title>
     <?php wp_head(); ?>
+    <style>
+        .stb-course-main-wrapper {
+            padding-top: 120px !important;
+            padding-bottom: 5rem !important;
+        }
+        body.admin-bar .stb-course-main-wrapper {
+            padding-top: 152px !important;
+        }
+        @media screen and (max-width: 782px) {
+            .stb-course-main-wrapper {
+                padding-top: 100px !important;
+            }
+            body.admin-bar .stb-course-main-wrapper {
+                padding-top: 146px !important;
+            }
+        }
+    </style>
 </head>
 <body <?php body_class('stb-native-body min-h-screen bg-[#070A0F] text-slate-100 font-sans antialiased selection:bg-[#54B435]/30 selection:text-[#54B435]'); ?>>
 
@@ -81,7 +98,7 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
     <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
 </div>
 
-<div class="relative z-10 pt-28 pb-20">
+<div class="stb-course-main-wrapper relative z-10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <!-- Breadcrumbs -->

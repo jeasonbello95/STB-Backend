@@ -387,5 +387,29 @@ body.admin-bar #stb-native-header {
   color: #ffffff !important;
 }
 
+/* ================= ESPACIADO DE CABECERA Y CONTENIDO ================= */
+.stb-course-main-wrapper,
+.stb-ecommerce-main {
+  padding-top: 120px !important;
+  padding-bottom: 5rem !important;
+}
+
+body.admin-bar .stb-course-main-wrapper,
+body.admin-bar .stb-ecommerce-main {
+  padding-top: 152px !important; /* 120px + 32px admin bar */
+}
+
+@media screen and (max-width: 782px) {
+  .stb-course-main-wrapper,
+  .stb-ecommerce-main {
+    padding-top: 100px !important;
+  }
+  
+  body.admin-bar .stb-course-main-wrapper,
+  body.admin-bar .stb-ecommerce-main {
+    padding-top: 146px !important; /* 100px + 46px admin bar */
+  }
+}
+
 
 
