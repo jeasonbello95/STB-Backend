@@ -32,16 +32,38 @@ $login_url = wp_login_url(home_url('/'));
 $logout_url = wp_logout_url(home_url('/'));
 ?>
 
-<!-- Header Nativo WordPress -->
-<header id="stb-native-header" class="stb-wp-header fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-deep-950/90 backdrop-blur-xl border-b border-white/10 py-3.5 shadow-2xl">
-    <!-- Línea inferior con gradiente verde/cian -->
-    <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent"></div>
+<style>
+/* Soporte nativo para WordPress Admin Bar */
+body.admin-bar #stb-native-header {
+    top: 32px;
+}
+@media screen and (max-width: 782px) {
+    body.admin-bar #stb-native-header {
+        top: 46px;
+    }
+}
+.stb-header-logo-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 1 !important;
+}
+.stb-header-logo-img {
+    display: block !important;
+    width: auto !important;
+    filter: drop-shadow(0 0 12px rgba(84, 180, 53, 0.45));
+}
+</style>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+<!-- Header Nativo WordPress -->
+<header id="stb-native-header" class="stb-wp-header fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-deep-950/90 backdrop-blur-xl border-b border-white/10 py-3 md:py-3.5 shadow-2xl">
+    <!-- Línea inferior con gradiente verde/cian -->
+    <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center justify-between">
         <!-- Logo / Marca oficial de WordPress -->
-        <a href="<?php echo esc_url(home_url('/')); ?>" class="flex items-center gap-3 group" style="text-decoration:none;">
+        <a href="<?php echo esc_url(home_url('/')); ?>" class="stb-header-logo-link flex items-center gap-2 group shrink-0" style="text-decoration:none;">
             <?php if (!empty($logo_url)): ?>
-                <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr($site_name); ?>" class="h-9 w-auto object-contain transition-transform group-hover:scale-105" />
+                <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr($site_name); ?>" class="stb-header-logo-img h-8 md:h-9 w-auto object-contain transition-transform group-hover:scale-105" />
             <?php else: ?>
                 <span class="text-xl font-black tracking-wider text-white uppercase font-display">
                     STB <span class="text-primary-400">Academy</span>

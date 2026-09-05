@@ -344,8 +344,38 @@
 }
 
 /* ================= NAVEGACIÓN HEADER CYBER ================= */
+body.admin-bar #stb-native-header {
+  top: 32px !important;
+}
+
+@media screen and (max-width: 782px) {
+  body.admin-bar #stb-native-header {
+    top: 46px !important;
+  }
+}
+
 .stb-wp-header a {
   text-decoration: none !important;
+}
+
+.stb-wp-header .stb-header-logo-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+}
+
+.stb-wp-header .stb-header-logo-img {
+  display: block !important;
+  height: 2rem !important;
+  width: auto !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 0 12px rgba(84, 180, 53, 0.45));
+}
+
+@media (min-width: 768px) {
+  .stb-wp-header .stb-header-logo-img {
+    height: 2.25rem !important;
+  }
 }
 
 .stb-wp-header nav ul li a {
