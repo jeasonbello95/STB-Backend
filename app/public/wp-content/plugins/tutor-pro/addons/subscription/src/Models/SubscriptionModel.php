@@ -994,7 +994,7 @@ class SubscriptionModel extends BaseModel {
 	public function get_user_active_subscriptions( $user_id ) {
 		$cache_key = 'get_user_active_subscriptions_' . $user_id;
 		$cached    = TutorCache::get( $cache_key );
-		if ( false !== $cached ) {
+		if ( false !== $cached && is_array( $cached ) ) {
 			return $cached;
 		}
 
@@ -1010,6 +1010,10 @@ class SubscriptionModel extends BaseModel {
 				self::STATUS_ACTIVE
 			)
 		);
+
+		if ( ! is_array( $list ) ) {
+			$list = array();
+		}
 
 		foreach ( $list as $row ) {
 			$row->plan = $plan_model->get_plan( $row->plan_id );
@@ -1110,6 +1114,9 @@ class SubscriptionModel extends BaseModel {
 	 */
 	public function get_user_active_membership_subscriptions( $user_id ) {
 		$active_subscriptions = $this->get_user_active_subscriptions( $user_id );
+		if ( ! is_array( $active_subscriptions ) ) {
+			$active_subscriptions = array();
+		}
 
 		$active_membership_subscriptions = array_filter( $active_subscriptions, fn( $row ) => in_array( $row->plan_type, PlanModel::get_membership_plan_types(), true ) );
 
@@ -1175,6 +1182,9 @@ class SubscriptionModel extends BaseModel {
 	 */
 	public function has_course_subscription_access( $course_id, $user_id ) {
 		$active_subscriptions        = $this->get_user_active_subscriptions( $user_id );
+		if ( ! is_array( $active_subscriptions ) ) {
+			$active_subscriptions = array();
+		}
 		$active_course_subscriptions = array_filter( $active_subscriptions, fn( $s ) => in_array( $s->plan_type, PlanModel::get_subscription_plan_types(), true ) );
 
 		if ( 0 === count( $active_course_subscriptions ) ) {
