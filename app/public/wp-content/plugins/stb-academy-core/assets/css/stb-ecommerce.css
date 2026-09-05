@@ -343,4 +343,19 @@
   transform: translateY(0) scale(0.98) !important;
 }
 
+/* ================= NAVEGACIÓN HEADER CYBER ================= */
+.stb-wp-header a {
+  text-decoration: none !important;
+}
+
+.stb-wp-header nav ul li a {
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stb-wp-header nav ul li a:hover {
+  color: #ffffff !important;
+}
+
+
 
