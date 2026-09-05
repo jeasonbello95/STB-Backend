@@ -56,9 +56,6 @@ body.admin-bar #stb-native-header {
 
 <!-- Header Nativo WordPress -->
 <header id="stb-native-header" class="stb-wp-header fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-deep-950/90 backdrop-blur-xl border-b border-white/10 py-3 md:py-3.5 shadow-2xl">
-    <!-- Línea inferior con gradiente verde/cian -->
-    <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent pointer-events-none"></div>
-
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center justify-between">
         <!-- Logo / Marca oficial de WordPress -->
         <a href="<?php echo esc_url(home_url('/')); ?>" class="stb-header-logo-link flex items-center gap-2 group shrink-0" style="text-decoration:none;">
