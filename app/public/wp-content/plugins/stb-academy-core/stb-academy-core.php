@@ -80,6 +80,9 @@ class STB_Academy_Core {
         add_action('wp', array($this, 'prevent_subscription_null_errors'), 1);
         add_action('template_redirect', array($this, 'prevent_subscription_null_errors'), 1);
         add_filter('is_course_purchasable', array($this, 'safe_is_course_purchasable_precheck'), 1, 2);
+
+        // Corrección de publicación de cursos en Tutor LMS (evitar que se queden en estado 'future'/programado por desfase horario GMT)
+        add_filter('wp_insert_post_data', array($this, 'fix_course_builder_publish_status'), 20, 2);
     }
 
     /**
@@ -1120,16 +1123,192 @@ class STB_Academy_Core {
                 try {
                     document.documentElement.setAttribute('data-tutor-theme', 'dark');
                     document.documentElement.classList.add('dark');
-                    if (document.body) {
-                        document.body.setAttribute('data-tutor-theme', 'dark');
-                        document.body.classList.add('dark');
+                    if (window.location.href.indexOf('create-course') !== -1) {
+                        document.documentElement.classList.add('tutor-course-builder-active');
                     }
+                    function pinCourseBuilderAdminBar() {
+                        var bar = document.getElementById('wpadminbar');
+                        if (bar && document.body) {
+                            if (document.body.classList.contains('tutor-screen-course-builder') ||
+                                window.location.href.indexOf('create-course') !== -1) {
+                                if (document.body.firstChild !== bar) {
+                                    document.body.prepend(bar);
+                                }
+                            }
+                            document.documentElement.classList.add('has-wpadminbar');
+                            document.body.classList.add('has-wpadminbar');
+                        }
+                    }
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', pinCourseBuilderAdminBar);
+                    } else {
+                        pinCourseBuilderAdminBar();
+                    }
+                    window.addEventListener('load', pinCourseBuilderAdminBar);
+                    if (typeof MutationObserver !== 'undefined') {
+                        var observer = new MutationObserver(function() {
+                            pinCourseBuilderAdminBar();
+                        });
+                        if (document.body) {
+                            observer.observe(document.body, { childList: true });
+                        } else {
+                            document.addEventListener('DOMContentLoaded', function() {
+                                if (document.body) {
+                                    observer.observe(document.body, { childList: true });
+                                }
+                            });
+                        }
+                    }
+
+                    // Asegurar que el botón "+ Nuevo -> Curso" de la barra de administración cree y redirija a un nuevo curso
+                    document.addEventListener('click', function(e) {
+                        var btn = e.target.closest && e.target.closest('a.tutor-create-new-course, button.tutor-create-new-course, li.tutor-create-new-course a, #wp-admin-bar-new-courses a');
+                        if (!btn) return;
+                        
+                        e.preventDefault();
+                        e.stopPropagation();
+                        btn.style.pointerEvents = 'none';
+                        if (btn.classList.contains('ab-item')) {
+                            btn.innerHTML = 'Creando curso...';
+                        }
+                        
+                        var ajaxUrl = (window._tutorobject && window._tutorobject.ajaxurl) || '/wp-admin/admin-ajax.php';
+                        var nonce = (window._tutorobject && window._tutorobject._tutor_nonce) || '';
+                        
+                        var formData = new FormData();
+                        formData.append('action', 'tutor_create_new_draft_course');
+                        formData.append('from_dashboard', '1');
+                        if (nonce) {
+                            formData.append('_tutor_nonce', nonce);
+                        }
+                        
+                        fetch(ajaxUrl, {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'same-origin'
+                        })
+                        .then(function(res) { return res.json(); })
+                        .then(function(resData) {
+                            if (resData && resData.status_code === 201 && resData.data) {
+                                window.location.href = resData.data;
+                            } else if (resData && resData.data) {
+                                window.location.href = resData.data;
+                            } else {
+                                window.location.href = '/escritorio/create-course/';
+                            }
+                        })
+                        .catch(function() {
+                            window.location.href = '/escritorio/create-course/';
+                        });
+                    }, true);
                 } catch(e) {}
             })();
         </script>
         <style>
             :root, html, body {
                 color-scheme: dark !important;
+            }
+            /* Reset de márgenes y paddings en Course Builder para un scroll limpio y sin desfases */
+            html:has(body.tutor-screen-course-builder),
+            html.tutor-course-builder-active,
+            body.tutor-screen-course-builder {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            /* Tutor Course Builder - Modo Oscuro Adaptativo */
+            html:has(body.tutor-screen-course-builder),
+            html.tutor-course-builder-active {
+                background-color: #12151c !important;
+            }
+            body.tutor-screen-course-builder,
+            body.tutor-screen-course-builder[data-tutor-theme] {
+                background-color: #f8f8f8 !important;
+                filter: invert(0.92) hue-rotate(180deg) brightness(0.95) contrast(0.95) !important;
+                min-height: 100vh !important;
+                color-scheme: light !important;
+            }
+            /* Preservar colores naturales de medios e imágenes reales */
+            body.tutor-screen-course-builder img,
+            body.tutor-screen-course-builder video,
+            body.tutor-screen-course-builder picture,
+            body.tutor-screen-course-builder canvas,
+            body.tutor-screen-course-builder [style*="background-image"],
+            body.tutor-screen-course-builder iframe[src*="youtube"],
+            body.tutor-screen-course-builder iframe[src*="vimeo"] {
+                filter: invert(1.08) hue-rotate(180deg) !important;
+            }
+            /* WP Admin Bar: Sticky arriba de todo, siempre visible al hacer scroll */
+            body.tutor-screen-course-builder #wpadminbar {
+                position: sticky !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                z-index: 999999 !important;
+                filter: invert(1.08) hue-rotate(180deg) !important;
+                display: block !important;
+            }
+            /* Header de Tutor Course Builder: Pegado exactamente debajo de WP Admin Bar al navegar y hacer scroll */
+            @media screen and (min-width: 783px) {
+                body.tutor-screen-course-builder #wpadminbar {
+                    height: 32px !important;
+                    min-height: 32px !important;
+                }
+
+                body.tutor-screen-course-builder:has(#wpadminbar) #tutor-course-builder > div > div:first-child,
+                body.tutor-screen-course-builder.admin-bar #tutor-course-builder > div > div:first-child,
+                body.tutor-screen-course-builder.has-wpadminbar #tutor-course-builder > div > div:first-child,
+                html:has(#wpadminbar) body.tutor-screen-course-builder #tutor-course-builder > div > div:first-child,
+                html.has-wpadminbar body.tutor-screen-course-builder #tutor-course-builder > div > div:first-child,
+                body.tutor-screen-course-builder:has(#wpadminbar) div:has(> [data-title-divider]),
+                body.tutor-screen-course-builder.admin-bar div:has(> [data-title-divider]),
+                body.tutor-screen-course-builder.has-wpadminbar div:has(> [data-title-divider]) {
+                    position: sticky !important;
+                    top: 32px !important;
+                    z-index: 99999 !important;
+                }
+
+                body:has(#wpadminbar) .tutor-dashboard-header,
+                body.admin-bar .tutor-dashboard-header,
+                body.has-wpadminbar .tutor-dashboard-header {
+                    top: 32px !important;
+                }
+                body:has(#wpadminbar) .tutor-dashboard-sidebar,
+                body.admin-bar .tutor-dashboard-sidebar,
+                body.has-wpadminbar .tutor-dashboard-sidebar {
+                    top: 32px !important;
+                }
+            }
+
+            @media screen and (max-width: 782px) {
+                body.tutor-screen-course-builder #wpadminbar {
+                    height: 46px !important;
+                    min-height: 46px !important;
+                }
+
+                body.tutor-screen-course-builder:has(#wpadminbar) #tutor-course-builder > div > div:first-child,
+                body.tutor-screen-course-builder.admin-bar #tutor-course-builder > div > div:first-child,
+                body.tutor-screen-course-builder.has-wpadminbar #tutor-course-builder > div > div:first-child,
+                html:has(#wpadminbar) body.tutor-screen-course-builder #tutor-course-builder > div > div:first-child,
+                html.has-wpadminbar body.tutor-screen-course-builder #tutor-course-builder > div > div:first-child,
+                body.tutor-screen-course-builder:has(#wpadminbar) div:has(> [data-title-divider]),
+                body.tutor-screen-course-builder.admin-bar div:has(> [data-title-divider]),
+                body.tutor-screen-course-builder.has-wpadminbar div:has(> [data-title-divider]) {
+                    position: sticky !important;
+                    top: 46px !important;
+                    z-index: 99999 !important;
+                }
+
+                body:has(#wpadminbar) .tutor-dashboard-header,
+                body.admin-bar .tutor-dashboard-header,
+                body.has-wpadminbar .tutor-dashboard-header {
+                    top: 46px !important;
+                }
+                body:has(#wpadminbar) .tutor-dashboard-sidebar,
+                body.admin-bar .tutor-dashboard-sidebar,
+                body.has-wpadminbar .tutor-dashboard-sidebar {
+                    top: 46px !important;
+                }
             }
             html[data-tutor-theme="dark"],
             body[data-tutor-theme="dark"],
@@ -1199,19 +1378,22 @@ class STB_Academy_Core {
             .stb-brand-label .stb-cyan {
                 color: #00F0FF !important;
             }
-            .stb-top-back-btn {
-                cursor: pointer;
-                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            /* Notificaciones Tutor LMS: alto contraste en tema oscuro sin alterar dimensiones del layout */
+            .tutor-dashboard-notification-trigger-wrap button {
+                color: #e2e8f0 !important;
+                border-color: rgba(255, 255, 255, 0.16) !important;
+                background: rgba(255, 255, 255, 0.05) !important;
+                border-radius: 8px !important;
+                transition: all 0.2s ease !important;
             }
-            .stb-top-back-btn:hover {
-                background: rgba(0, 240, 255, 0.15) !important;
-                border-color: rgba(0, 240, 255, 0.5) !important;
+            .tutor-dashboard-notification-trigger-wrap button:hover {
+                background: rgba(0, 240, 255, 0.12) !important;
+                border-color: rgba(0, 240, 255, 0.45) !important;
                 color: #00F0FF !important;
-                transform: translateX(-2px);
-                box-shadow: 0 0 12px rgba(0, 240, 255, 0.25) !important;
             }
-            .stb-top-back-btn:hover svg {
-                stroke: #00F0FF !important;
+            .tutor-dashboard-notification-badge {
+                background: #ef4444 !important;
+                box-shadow: 0 0 6px rgba(239, 68, 68, 0.8) !important;
             }
         </style>
         <?php
@@ -1379,6 +1561,22 @@ class STB_Academy_Core {
         }
 
         return $is_purchasable;
+    }
+
+    /**
+     * Asegura que los cursos publicados desde el Course Builder de Tutor LMS se guarden con estado 'publish'
+     * y no sean forzados a 'future' (programados) por discrepancias horarias entre el navegador (GMT) y el servidor local.
+     */
+    public function fix_course_builder_publish_status($data, $postarr) {
+        if (isset($data['post_type']) && $data['post_type'] === 'courses') {
+            $requested_status = isset($postarr['post_status']) ? $postarr['post_status'] : '';
+            if ($requested_status === 'publish' || ($data['post_status'] === 'future' && $requested_status !== 'future')) {
+                $data['post_status'] = 'publish';
+                $data['post_date'] = current_time('mysql');
+                $data['post_date_gmt'] = current_time('mysql', 1);
+            }
+        }
+        return $data;
     }
 }
 

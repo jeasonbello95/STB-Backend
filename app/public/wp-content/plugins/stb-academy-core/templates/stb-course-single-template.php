@@ -65,44 +65,225 @@ $completed_percent = $course_progress ? $course_progress['completed_percent'] : 
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php the_title(); ?> | STB Academy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <?php wp_head(); ?>
     <style>
+        :root {
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+            --tutor-surface-base: #05090F !important;
+        }
+        html,
+        html[data-tutor-theme="dark"],
+        body,
+        body[data-tutor-theme="dark"],
+        body.stb-native-body {
+            font-family: var(--font-sans) !important;
+            background-color: #05090F !important;
+            color: #f1f5f9 !important;
+        }
+        .font-display, h1, h2, h3, h4, .stb-font-display {
+            font-family: var(--font-display) !important;
+        }
         .stb-course-main-wrapper {
-            padding-top: 120px !important;
+            padding-top: 73px !important;
             padding-bottom: 5rem !important;
         }
         body.admin-bar .stb-course-main-wrapper {
-            padding-top: 152px !important;
+            padding-top: 105px !important;
         }
         @media screen and (max-width: 782px) {
             .stb-course-main-wrapper {
-                padding-top: 100px !important;
+                padding-top: 73px !important;
             }
             body.admin-bar .stb-course-main-wrapper {
-                padding-top: 146px !important;
+                padding-top: 119px !important;
             }
+        }
+        /* ================= AMBIENT BACKGROUND (REPLICA 1:1 REACT) ================= */
+        .stb-ambient-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            background-color: #05090F !important;
+        }
+        .stb-ambient-base {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at top left, rgba(20, 83, 45, 0.35), transparent 55%),
+                        radial-gradient(ellipse at bottom right, rgba(15, 52, 96, 0.4), transparent 55%);
+        }
+        .stb-blob-green {
+            position: absolute;
+            top: -15%;
+            left: -10%;
+            width: 560px;
+            height: 560px;
+            border-radius: 9999px;
+            background-color: rgba(84, 180, 53, 0.25);
+            filter: blur(130px);
+            -webkit-filter: blur(130px);
+            animation: stbFloatGreen 26s ease-in-out infinite;
+        }
+        .stb-blob-blue {
+            position: absolute;
+            bottom: -20%;
+            right: -12%;
+            width: 640px;
+            height: 640px;
+            border-radius: 9999px;
+            background-color: rgba(18, 34, 58, 0.75);
+            filter: blur(150px);
+            -webkit-filter: blur(150px);
+            animation: stbFloatBlue 22s ease-in-out infinite 1s;
+        }
+        .stb-blob-cyan {
+            position: absolute;
+            top: 40%;
+            left: 55%;
+            width: 420px;
+            height: 420px;
+            border-radius: 9999px;
+            background-color: rgba(0, 229, 255, 0.15);
+            filter: blur(130px);
+            -webkit-filter: blur(130px);
+            animation: stbFloatCyan 18s ease-in-out infinite 2s;
+        }
+        .stb-ambient-grid {
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(84, 180, 53, 0.06) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(84, 180, 53, 0.06) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+        }
+        .stb-ambient-vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.65) 100%);
+        }
+        @keyframes stbFloatGreen {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(60px, -50px); }
+            66% { transform: translate(-40px, 40px); }
+        }
+        @keyframes stbFloatBlue {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(-70px, 60px); }
+            66% { transform: translate(50px, -40px); }
+        }
+        @keyframes stbFloatCyan {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(40px, -60px); }
+            66% { transform: translate(-60px, 30px); }
+        }
+        /* Visual React STB: Cuadrícula y degradados idénticos al Inicio */
+        .bg-grid-pattern {
+            background-image: linear-gradient(rgba(84,180,53,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(84,180,53,0.06) 1px, transparent 1px);
+        }
+        .bg-grid {
+            background-size: 40px 40px;
+        }
+        .text-gradient {
+            background: linear-gradient(90deg, #6fcc4b 0%, #00e5ff 45%, #54b435 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        /* Tarjetas Glassmorphism de la App React */
+        .stb-react-card {
+            background: rgba(7, 19, 13, 0.6) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45) !important;
+            position: relative;
+        }
+        .stb-react-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(84, 180, 53, 0.4), rgba(0, 229, 255, 0.3), transparent);
+            pointer-events: none;
+            z-index: 1;
+        }
+        /* Tarjeta de compra lateral */
+        .stb-pricing-card {
+            background: rgba(5, 9, 15, 0.85) !important;
+            backdrop-filter: blur(28px) !important;
+            -webkit-backdrop-filter: blur(28px) !important;
+            border: 1px solid rgba(84, 180, 53, 0.35) !important;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6), 0 0 35px rgba(84, 180, 53, 0.12) !important;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stb-pricing-card:hover {
+            border-color: rgba(84, 180, 53, 0.55) !important;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 45px rgba(84, 180, 53, 0.2) !important;
+        }
+        /* Botones oficiales React */
+        .stb-btn-glow {
+            background: linear-gradient(135deg, #6FCC4B 0%, #54B435 100%) !important;
+            color: #05090F !important;
+            font-weight: 800 !important;
+            border: none !important;
+            box-shadow: 0 0 25px rgba(84, 180, 53, 0.45) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .stb-btn-glow:hover {
+            background: linear-gradient(135deg, #7ee055 0%, #6FCC4B 100%) !important;
+            box-shadow: 0 0 35px rgba(84, 180, 53, 0.7) !important;
+            transform: translateY(-2px);
+            color: #000000 !important;
+        }
+        .stb-btn-secondary {
+            background: rgba(255, 255, 255, 0.05) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #f1f5f9 !important;
+            font-weight: 700 !important;
+            transition: all 0.3s ease !important;
+        }
+        .stb-btn-secondary:hover {
+            background: rgba(84, 180, 53, 0.12) !important;
+            border-color: rgba(84, 180, 53, 0.5) !important;
+            color: #54B435 !important;
+            box-shadow: 0 0 20px rgba(84, 180, 53, 0.2) !important;
+            transform: translateY(-2px);
         }
     </style>
 </head>
-<body <?php body_class('stb-native-body min-h-screen bg-[#070A0F] text-slate-100 font-sans antialiased selection:bg-[#54B435]/30 selection:text-[#54B435]'); ?>>
+<body <?php body_class('stb-native-body min-h-screen text-slate-100 antialiased selection:bg-[#54B435]/30 selection:text-[#54B435]'); ?> style="background-color: #05090F;">
 
 <?php
 // Render Header Nativo STB Academy
 include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
 ?>
 
-<!-- Ambient Cyber Glows -->
-<div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-    <div class="absolute top-20 left-1/4 w-[500px] h-[500px] bg-[#54B435]/5 rounded-full blur-[140px]"></div>
-    <div class="absolute top-96 right-10 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[160px]"></div>
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+<!-- Ambient Background (Exact replica of React AmbientBackground) -->
+<div class="stb-ambient-wrapper">
+    <div class="stb-ambient-base"></div>
+    <div class="stb-blob-green"></div>
+    <div class="stb-blob-blue"></div>
+    <div class="stb-blob-cyan"></div>
+    <div class="stb-ambient-grid"></div>
+    <div class="stb-ambient-vignette"></div>
 </div>
 
 <div class="stb-course-main-wrapper relative z-10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <!-- Breadcrumbs -->
-        <nav class="flex items-center gap-2 text-xs font-mono text-slate-400 mb-6 uppercase tracking-wider">
+        <nav class="flex items-center gap-2 text-xs font-mono text-slate-400 mb-6 uppercase tracking-wider" style="margin-top: 24px;">
             <a href="<?php echo esc_url(home_url('/')); ?>" class="hover:text-[#54B435] transition-colors">Inicio</a>
             <span>/</span>
             <a href="<?php echo esc_url(home_url('/cursos')); ?>" class="hover:text-[#54B435] transition-colors">Cursos</a>
@@ -134,7 +315,7 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                 </div>
 
                 <!-- Course Title -->
-                <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4 leading-tight">
+                <h1 class="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-4 leading-tight">
                     <?php the_title(); ?>
                 </h1>
 
@@ -185,7 +366,7 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
 
             <!-- Right Hero Media (Thumbnail / Video Preview Frame) -->
             <div class="lg:col-span-4">
-                <div class="relative rounded-2xl overflow-hidden border border-white/15 bg-[#0E1420] shadow-2xl group">
+                <div class="relative rounded-2xl overflow-hidden border border-white/10 stb-react-card shadow-2xl group">
                     <?php if ($has_video) : ?>
                         <div class="aspect-video relative flex items-center justify-center bg-slate-900">
                             <?php tutor_course_video(); ?>
@@ -202,7 +383,7 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                         ?>
                         <div class="aspect-video relative overflow-hidden bg-slate-900">
                             <img src="<?php echo esc_url($course_thumb_src); ?>" alt="<?php the_title_attribute(); ?>" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                            <div class="absolute inset-0 bg-gradient-to-t from-[#070A0F] via-transparent to-transparent opacity-70"></div>
+                            <div class="absolute inset-0 bg-gradient-to-t from-[#05090F] via-transparent to-transparent opacity-70"></div>
                             <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] font-mono text-white/90 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
                                 <span class="flex items-center gap-1.5 text-[#54B435] font-bold">
                                     <span class="w-2 h-2 rounded-full bg-[#54B435] animate-pulse"></span>
@@ -224,16 +405,16 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                 
                 <!-- Course Tab Buttons -->
                 <div class="flex items-center gap-2 border-b border-white/10 pb-px overflow-x-auto no-scrollbar">
-                    <button type="button" onclick="stbSwitchTab('tab-info')" id="btn-tab-info" class="stb-tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-[#54B435] text-[#54B435] transition-all">
+                    <button type="button" onclick="stbSwitchTab('tab-info')" id="btn-tab-info" class="stb-tab-btn font-display px-5 py-3 text-sm font-bold border-b-2 border-[#54B435] text-[#54B435] transition-all">
                         Información General
                     </button>
-                    <button type="button" onclick="stbSwitchTab('tab-curriculum')" id="btn-tab-curriculum" class="stb-tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+                    <button type="button" onclick="stbSwitchTab('tab-curriculum')" id="btn-tab-curriculum" class="stb-tab-btn font-display px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
                         Temario del Curso
                     </button>
-                    <button type="button" onclick="stbSwitchTab('tab-instructor')" id="btn-tab-instructor" class="stb-tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+                    <button type="button" onclick="stbSwitchTab('tab-instructor')" id="btn-tab-instructor" class="stb-tab-btn font-display px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
                         Instructor
                     </button>
-                    <button type="button" onclick="stbSwitchTab('tab-reviews')" id="btn-tab-reviews" class="stb-tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
+                    <button type="button" onclick="stbSwitchTab('tab-reviews')" id="btn-tab-reviews" class="stb-tab-btn font-display px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">
                         Reseñas
                     </button>
                 </div>
@@ -246,8 +427,9 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                     $benefits = tutor_course_benefits();
                     if (!empty($benefits)) :
                     ?>
-                    <div class="p-6 rounded-2xl bg-[#0E1420]/80 border border-white/10 backdrop-blur-md">
-                        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <div class="p-6 sm:p-8 rounded-2xl stb-react-card relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#54B435]/40 to-transparent"></div>
+                        <h3 class="font-display text-xl font-bold text-white mb-4 flex items-center gap-2">
                             <span class="text-[#54B435]">✓</span> Lo que aprenderás en este programa
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -262,9 +444,10 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                     <?php endif; ?>
 
                     <!-- Main Course Description -->
-                    <div class="p-6 rounded-2xl bg-[#0E1420]/60 border border-white/10">
-                        <h3 class="text-xl font-bold text-white mb-4">Descripción del Curso</h3>
-                        <div class="prose prose-invert max-w-none text-slate-300 leading-relaxed space-y-4">
+                    <div class="p-6 sm:p-8 rounded-2xl stb-react-card relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                        <h3 class="font-display text-xl font-bold text-white mb-4">Descripción del Curso</h3>
+                        <div class="prose prose-invert max-w-none text-slate-300 leading-relaxed space-y-4 font-sans">
                             <?php the_content(); ?>
                         </div>
                     </div>
@@ -276,8 +459,8 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                         $requirements = tutor_course_requirements();
                         if (!empty($requirements)) :
                         ?>
-                        <div class="p-6 rounded-2xl bg-[#0E1420]/60 border border-white/10">
-                            <h4 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                        <div class="p-6 rounded-2xl stb-react-card relative overflow-hidden">
+                            <h4 class="font-display text-base font-bold text-white mb-3 flex items-center gap-2">
                                 <span>📋</span> Requisitos Previos
                             </h4>
                             <ul class="space-y-2 text-sm text-slate-300">
@@ -296,8 +479,8 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                         $target_audience = tutor_course_target_audience();
                         if (!empty($target_audience)) :
                         ?>
-                        <div class="p-6 rounded-2xl bg-[#0E1420]/60 border border-white/10">
-                            <h4 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                        <div class="p-6 rounded-2xl stb-react-card relative overflow-hidden">
+                            <h4 class="font-display text-base font-bold text-white mb-3 flex items-center gap-2">
                                 <span>🎯</span> ¿A quién va dirigido?
                             </h4>
                             <ul class="space-y-2 text-sm text-slate-300">
@@ -315,7 +498,7 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
 
                 <!-- Tab 2: Curriculum / Temario -->
                 <div id="tab-curriculum" class="stb-tab-content space-y-4 hidden">
-                    <div class="flex items-center justify-between p-4 rounded-xl bg-[#0E1420]/80 border border-white/10 text-xs font-mono text-slate-300">
+                    <div class="flex items-center justify-between p-4 rounded-xl stb-react-card text-xs font-mono text-slate-300">
                         <span>Plan de Estudios Oficial</span>
                         <span>Módulos de Formación Institucional</span>
                     </div>
@@ -332,13 +515,13 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                                 $topic_contents = tutor_utils()->get_course_contents_by_topic($topic_id, -1);
                                 $contents_count = $topic_contents ? $topic_contents->post_count : 0;
                             ?>
-                            <div class="rounded-xl border border-white/10 bg-[#0E1420]/90 overflow-hidden mb-3 transition-colors hover:border-white/20">
+                            <div class="rounded-xl border border-white/10 stb-react-card overflow-hidden mb-3 transition-all hover:border-[#54B435]/40">
                                 <button type="button" class="w-full px-5 py-4 flex items-center justify-between text-left focus:outline-none" onclick="stbToggleAccordion('topic-<?php echo esc_attr($topic_id); ?>')">
                                     <div class="flex items-center gap-3">
                                         <span class="w-6 h-6 rounded-full bg-[#54B435]/15 text-[#54B435] text-xs font-bold flex items-center justify-center border border-[#54B435]/30">
                                             <?php echo esc_html($topic_index); ?>
                                         </span>
-                                        <span class="font-bold text-white text-base"><?php the_title(); ?></span>
+                                        <span class="font-display font-bold text-white text-base"><?php the_title(); ?></span>
                                     </div>
                                     <div class="flex items-center gap-3 text-xs text-slate-400 font-mono">
                                         <span><?php echo esc_html($contents_count); ?> lecciones</span>
@@ -378,7 +561,7 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                             </div>
                             <?php endwhile; wp_reset_postdata(); ?>
                         <?php else : ?>
-                            <div class="p-6 rounded-xl bg-[#0E1420] border border-white/10 text-center text-slate-400">
+                            <div class="p-6 rounded-xl stb-react-card text-center text-slate-400">
                                 El temario está en estructuración para este curso.
                             </div>
                         <?php endif; ?>
@@ -387,10 +570,10 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
 
                 <!-- Tab 3: Instructor Profile -->
                 <div id="tab-instructor" class="stb-tab-content space-y-6 hidden">
-                    <div class="p-6 rounded-2xl bg-[#0E1420]/80 border border-white/10 flex flex-col sm:flex-row items-start gap-6">
+                    <div class="p-6 sm:p-8 rounded-2xl stb-react-card relative overflow-hidden flex flex-col sm:flex-row items-start gap-6">
                         <img src="<?php echo esc_url($instructor_avatar); ?>" alt="<?php echo esc_attr($instructor_name); ?>" class="w-20 h-20 rounded-2xl border-2 border-[#54B435]/40 object-cover shadow-lg" />
                         <div class="flex-1 space-y-2">
-                            <h3 class="text-xl font-bold text-white"><?php echo esc_html($instructor_name); ?></h3>
+                            <h3 class="font-display text-xl font-bold text-white"><?php echo esc_html($instructor_name); ?></h3>
                             <div class="text-xs font-mono text-[#54B435]">Instructor Oficial STB Academy</div>
                             <p class="text-sm text-slate-300 leading-relaxed">
                                 <?php echo esc_html($instructor_bio); ?>
@@ -401,10 +584,10 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
 
                 <!-- Tab 4: Reviews -->
                 <div id="tab-reviews" class="stb-tab-content space-y-6 hidden">
-                    <div class="p-6 rounded-2xl bg-[#0E1420]/80 border border-white/10">
+                    <div class="p-6 sm:p-8 rounded-2xl stb-react-card relative overflow-hidden">
                         <div class="flex flex-col sm:flex-row items-center justify-between gap-6 pb-6 border-b border-white/10">
                             <div class="text-center sm:text-left">
-                                <div class="text-5xl font-extrabold text-white mb-1"><?php echo number_format($rating_avg, 1); ?></div>
+                                <div class="font-display text-5xl font-extrabold text-white mb-1"><?php echo number_format($rating_avg, 1); ?></div>
                                 <div class="flex text-amber-400 text-lg mb-1">
                                     ★★★★★
                                 </div>
@@ -424,7 +607,7 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                 <div class="sticky top-28 space-y-6">
                     
                     <!-- Pricing & Purchase Card -->
-                    <div class="p-6 rounded-2xl bg-[#0E1420]/90 border border-white/15 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                    <div class="stb-pricing-card p-6 sm:p-7 rounded-2xl relative overflow-hidden">
                         
                         <!-- Top Accent Line -->
                         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-[#54B435] to-cyan-500"></div>
@@ -434,13 +617,13 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                             <div class="text-xs font-mono text-slate-400 uppercase tracking-wider mb-1">Inversión / Acceso</div>
                             <div class="flex items-baseline gap-3">
                                 <?php if ($is_free) : ?>
-                                    <span class="text-4xl font-extrabold text-white">Gratis</span>
+                                    <span class="font-display text-4xl font-extrabold text-white">Gratis</span>
                                 <?php else : ?>
-                                    <span class="text-4xl font-extrabold text-white">
+                                    <span class="font-display text-4xl font-extrabold text-white">
                                         <?php tutor_print_formatted_price($display_price); ?>
                                     </span>
                                     <?php if ($regular_price && $sale_price && $sale_price !== $regular_price) : ?>
-                                        <del class="text-lg text-slate-500">
+                                        <del class="text-lg text-slate-500 font-mono">
                                             <?php tutor_print_formatted_price($regular_price); ?>
                                         </del>
                                     <?php endif; ?>
@@ -493,7 +676,7 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                                     </button>
                                 <?php endif; ?>
 
-                                <a href="<?php echo esc_url($buy_now_link); ?>" class="w-full py-3.5 px-6 rounded-xl font-bold text-slate-200 bg-slate-900/90 hover:bg-slate-800 border border-white/20 hover:border-[#54B435]/60 hover:text-[#54B435] transition-all flex items-center justify-center gap-2 text-sm shadow-lg hover:shadow-[0_0_20px_rgba(84,180,53,0.25)]" style="text-decoration:none;">
+                                <a href="<?php echo esc_url($buy_now_link); ?>" class="stb-btn-secondary w-full py-3.5 px-6 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm" style="text-decoration:none;">
                                     <span>⚡</span>
                                     <span>Comprar Ahora con 1-Click</span>
                                 </a>

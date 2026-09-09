@@ -5,18 +5,23 @@
 
 /* ================= RESET & VARIABLES BASE ================= */
 :root {
-  --stb-bg-dark: #070A0F;
-  --stb-bg-card: #0E1420;
+  --stb-bg-dark: #05090F;
+  --stb-bg-card: rgba(7, 19, 13, 0.65);
   --stb-primary: #54B435;
-  --stb-primary-hover: #449926;
+  --stb-primary-hover: #6FCC4B;
   --stb-primary-glow: rgba(84, 180, 53, 0.4);
   --stb-cyan: #00F0FF;
   --stb-border: rgba(255, 255, 255, 0.1);
   --stb-text-white: #ffffff;
   --stb-text-muted: #94a3b8;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --tutor-surface-base: #05090F !important;
 }
 
 /* ================= CONTENEDORES Y ESTRUCTURA ================= */
+html[data-tutor-theme="dark"],
+body[data-tutor-theme="dark"],
 .stb-ecommerce-body,
 .tutor-cart-page,
 .tutor-checkout-page {
@@ -41,11 +46,11 @@
 .tutor-checkout-billing,
 .tutor-checkout-details,
 .tutor-cart-empty-state {
-  background: rgba(14, 20, 32, 0.85) !important;
+  background: rgba(7, 19, 13, 0.65) !important;
   border: 1px solid var(--stb-border) !important;
   border-radius: 1.5rem !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
   box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5) !important;
 }
 
@@ -388,28 +393,80 @@ body.admin-bar #stb-native-header {
 }
 
 /* ================= ESPACIADO DE CABECERA Y CONTENIDO ================= */
-.stb-course-main-wrapper,
 .stb-ecommerce-main {
   padding-top: 120px !important;
   padding-bottom: 5rem !important;
 }
 
-body.admin-bar .stb-course-main-wrapper,
+.stb-course-main-wrapper {
+  padding-top: 73px !important;
+  padding-bottom: 5rem !important;
+}
+
 body.admin-bar .stb-ecommerce-main {
   padding-top: 152px !important; /* 120px + 32px admin bar */
 }
 
+body.admin-bar .stb-course-main-wrapper {
+  padding-top: 105px !important; /* 73px + 32px admin bar */
+}
+
 @media screen and (max-width: 782px) {
-  .stb-course-main-wrapper,
   .stb-ecommerce-main {
     padding-top: 100px !important;
   }
   
-  body.admin-bar .stb-course-main-wrapper,
+  .stb-course-main-wrapper {
+    padding-top: 73px !important;
+  }
+  
   body.admin-bar .stb-ecommerce-main {
     padding-top: 146px !important; /* 100px + 46px admin bar */
   }
+  
+  body.admin-bar .stb-course-main-wrapper {
+    padding-top: 119px !important; /* 73px + 46px admin bar */
+  }
 }
 
+.stb-pricing-card {
+  background: rgba(5, 9, 15, 0.85) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+  border: 1px solid rgba(84, 180, 53, 0.35) !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6), 0 0 35px rgba(84, 180, 53, 0.12) !important;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+.stb-pricing-card:hover {
+  border-color: rgba(84, 180, 53, 0.55) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 45px rgba(84, 180, 53, 0.2) !important;
+}
 
+.stb-react-card {
+  background: rgba(7, 19, 13, 0.6) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45) !important;
+  position: relative;
+}
+
+.stb-react-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(84, 180, 53, 0.4), rgba(0, 229, 255, 0.3), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.font-display, .stb-font-display {
+  font-family: var(--font-display) !important;
+}
