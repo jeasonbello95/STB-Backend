@@ -45,6 +45,26 @@ $course_level      = get_tutor_course_level($course_id);
 $categories        = wp_get_post_terms($course_id, 'course-category');
 $category_name     = !empty($categories) && !is_wp_error($categories) ? $categories[0]->name : 'Trading & Finanzas';
 
+// Metadatos de Modalidad Presencial y Eventos
+$event_location    = get_post_meta($course_id, '_stb_event_location', true);
+$event_days        = get_post_meta($course_id, '_stb_event_days', true);
+$event_date        = get_post_meta($course_id, '_stb_event_date', true);
+$event_schedule    = get_post_meta($course_id, '_stb_event_schedule', true);
+
+$is_presencial     = false;
+$course_tags       = wp_get_post_terms($course_id, 'course-tag');
+if (!empty($course_tags) && !is_wp_error($course_tags)) {
+    foreach ($course_tags as $t) {
+        if (strtolower($t->slug) === 'presencial' || strtolower($t->name) === 'presencial') {
+            $is_presencial = true;
+            break;
+        }
+    }
+}
+if (!empty($event_location) || !empty($event_days) || !empty($event_schedule)) {
+    $is_presencial = true;
+}
+
 // Instructor
 $instructor_id     = get_post_field('post_author', $course_id);
 $instructor_name   = get_the_author_meta('display_name', $instructor_id) ?: 'STB Academy Master';
@@ -302,6 +322,17 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                         <span class="w-1.5 h-1.5 rounded-full bg-[#54B435] animate-pulse mr-1.5"></span>
                         <?php echo esc_html($category_name); ?>
                     </span>
+                    <?php if ($is_presencial) : ?>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1.5"></span>
+                            📍 Modalidad: Presencial
+                        </span>
+                    <?php else : ?>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 mr-1.5"></span>
+                            🌐 Modalidad: Online
+                        </span>
+                    <?php endif; ?>
                     <?php if ($course_level) : ?>
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-800/80 text-slate-300 border border-white/10">
                             Nivel: <?php echo esc_html($course_level); ?>
@@ -403,6 +434,95 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
             <!-- Left Main Column: Tabs, Curriculum, Instructor, Reviews (8 cols) -->
             <main class="lg:col-span-8 space-y-8">
                 
+                <?php if ($is_presencial && ($event_location || $event_days || $event_schedule || $event_date)) : ?>
+                <!-- Bloque Destacado de Modalidad Presencial, Días y Horarios -->
+                <div class="p-6 sm:p-7 rounded-2xl stb-react-card relative overflow-hidden border border-emerald-500/35 bg-gradient-to-br from-emerald-950/40 via-[#05090F] to-cyan-950/30 shadow-[0_10px_35px_rgba(84,180,53,0.15)]">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-[#54B435] to-cyan-400"></div>
+                    
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg shadow-[0_0_15px_rgba(16,185,129,0.25)] shrink-0">
+                                📍
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Clase Presencial</span>
+                                    <span class="text-xs text-slate-400">• Asistencia en Sede Física</span>
+                                </div>
+                                <h3 class="font-display text-lg sm:text-xl font-bold text-white mt-0.5">Sede, Días y Horarios del Curso</h3>
+                            </div>
+                        </div>
+
+                        <?php if ($event_date) : ?>
+                            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-xs font-mono text-emerald-300">
+                                <span>📅 Inicio programado:</span>
+                                <strong class="text-white"><?php echo esc_html(date_i18n('d M Y', strtotime($event_date))); ?></strong>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- 1. Dónde se hará el curso (Ubicación) -->
+                        <div class="rounded-xl p-4 bg-black/40 border border-white/10 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center gap-1.5 text-xs font-mono text-emerald-400 mb-2">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    <span>¿Dónde se hará el curso?</span>
+                                </div>
+                                <p class="text-sm font-semibold text-white leading-relaxed">
+                                    <?php echo esc_html($event_location ?: 'Sede física por confirmar'); ?>
+                                </p>
+                            </div>
+                            <?php if ($event_location) : ?>
+                                <a href="https://www.google.com/maps/search/?api=1&query=<?php echo urlencode($event_location); ?>" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400 hover:text-emerald-300 transition-colors">
+                                    <span>Ver en Google Maps</span>
+                                    <span>↗</span>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- 2. Días en los que se hará -->
+                        <div class="rounded-xl p-4 bg-black/40 border border-white/10 hover:border-cyan-500/40 transition-all flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center gap-1.5 text-xs font-mono text-cyan-400 mb-2">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span>Días en los que se hará</span>
+                                </div>
+                                <p class="text-sm font-semibold text-white leading-relaxed">
+                                    <?php echo esc_html($event_days ?: 'Días a convenir'); ?>
+                                </p>
+                            </div>
+                            <div class="mt-3 text-[11px] font-mono text-slate-400">
+                                <span>Frecuencia y jornadas de clase</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Horario específico -->
+                        <div class="rounded-xl p-4 bg-black/40 border border-white/10 hover:border-[#54B435]/40 transition-all flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center gap-1.5 text-xs font-mono text-[#54B435] mb-2">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Horario específico</span>
+                                </div>
+                                <p class="text-sm font-bold text-white leading-relaxed font-mono">
+                                    <?php echo esc_html($event_schedule ?: 'Horario a convenir'); ?>
+                                </p>
+                            </div>
+                            <div class="mt-3 text-[11px] font-mono text-[#54B435]">
+                                <span>Clases y prácticas presenciales</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Course Tab Buttons -->
                 <div class="flex items-center gap-2 border-b border-white/10 pb-px overflow-x-auto no-scrollbar">
                     <button type="button" onclick="stbSwitchTab('tab-info')" id="btn-tab-info" class="stb-tab-btn font-display px-5 py-3 text-sm font-bold border-b-2 border-[#54B435] text-[#54B435] transition-all">
@@ -451,6 +571,30 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                             <?php the_content(); ?>
                         </div>
                     </div>
+
+                    <!-- Datos de Asistencia y Modalidad Presencial en Tab 1 -->
+                    <?php if ($is_presencial && ($event_location || $event_days || $event_schedule)) : ?>
+                    <div class="p-6 sm:p-8 rounded-2xl stb-react-card relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent"></div>
+                        <h3 class="font-display text-xl font-bold text-white mb-4 flex items-center gap-2">
+                            <span class="text-emerald-400">📍</span> Datos de Asistencia y Modalidad Presencial
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                            <div class="p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                                <span class="block text-xs font-mono text-emerald-400 mb-1">🏛️ Lugar del Curso</span>
+                                <span class="font-semibold text-white leading-snug"><?php echo esc_html($event_location ?: 'Por definir'); ?></span>
+                            </div>
+                            <div class="p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                                <span class="block text-xs font-mono text-cyan-400 mb-1">🗓️ Días de Clase</span>
+                                <span class="font-semibold text-white leading-snug"><?php echo esc_html($event_days ?: 'Por programar'); ?></span>
+                            </div>
+                            <div class="p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                                <span class="block text-xs font-mono text-[#54B435] mb-1">⏰ Horario Específico</span>
+                                <span class="font-semibold text-white font-mono leading-snug"><?php echo esc_html($event_schedule ?: 'Por convenir'); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                     <!-- Requirements & Audience Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -710,6 +854,42 @@ include STB_PLUGIN_DIR . 'templates/parts/header-native.php';
                         <!-- Course Specs List -->
                         <div class="space-y-3.5 text-sm">
                             <div class="text-xs font-mono text-slate-400 uppercase tracking-wider mb-2">Este curso incluye:</div>
+                            
+                            <?php if ($is_presencial) : ?>
+                            <div class="flex items-center justify-between text-slate-300">
+                                <span class="flex items-center gap-2">📍 Modalidad:</span>
+                                <span class="font-bold text-emerald-400">Presencial</span>
+                            </div>
+                            <?php if ($event_location) : ?>
+                            <div class="flex items-start justify-between text-slate-300 gap-2">
+                                <span class="flex items-center gap-2 shrink-0">🏛️ Sede:</span>
+                                <span class="font-medium text-white text-right text-xs leading-tight"><?php echo esc_html($event_location); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($event_days) : ?>
+                            <div class="flex items-center justify-between text-slate-300 gap-2">
+                                <span class="flex items-center gap-2 shrink-0">🗓️ Días:</span>
+                                <span class="font-medium text-white text-right text-xs"><?php echo esc_html($event_days); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($event_schedule) : ?>
+                            <div class="flex items-center justify-between text-slate-300 gap-2">
+                                <span class="flex items-center gap-2 shrink-0">⏰ Horario:</span>
+                                <span class="font-bold text-[#54B435] text-right font-mono text-xs"><?php echo esc_html($event_schedule); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($event_date) : ?>
+                            <div class="flex items-center justify-between text-slate-300 gap-2">
+                                <span class="flex items-center gap-2 shrink-0">📅 Inicio:</span>
+                                <span class="font-medium text-cyan-300 text-right font-mono text-xs"><?php echo esc_html(date_i18n('d M Y', strtotime($event_date))); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <?php else : ?>
+                            <div class="flex items-center justify-between text-slate-300">
+                                <span class="flex items-center gap-2">🌐 Modalidad:</span>
+                                <span class="font-bold text-cyan-400">Online</span>
+                            </div>
+                            <?php endif; ?>
                             
                             <?php if ($course_duration) : ?>
                             <div class="flex items-center justify-between text-slate-300">

@@ -97,6 +97,10 @@ class STB_Academy_Core {
         add_action('tutor_after_prepare_update_post_meta', array($this, 'save_tutor_course_event_meta'), 10, 2);
         add_action('wp_ajax_stb_get_builder_event_details', array($this, 'ajax_get_builder_event_details'));
         add_action('wp_ajax_stb_save_builder_event_details', array($this, 'ajax_save_builder_event_details'));
+
+        // Integración de detalles presenciales en vistas de preview y detalle de curso Tutor LMS (Fallback)
+        add_action('tutor_course/single/lead_meta/after', array($this, 'render_tutor_single_course_event_badge'));
+        add_action('tutor_course/single/after/topics', array($this, 'render_tutor_single_course_event_card'));
     }
 
     /**
@@ -2086,6 +2090,90 @@ class STB_Academy_Core {
                 'is_presencial' => has_term('presencial', 'course-tag', $course_id),
             )
         ));
+    }
+
+    /**
+     * Renderizar badge de evento en plantilla de Tutor LMS (Fallback)
+     */
+    public function render_tutor_single_course_event_badge() {
+        $course_id = get_the_ID();
+        if (!$course_id) return;
+        $location = get_post_meta($course_id, '_stb_event_location', true);
+        $days = get_post_meta($course_id, '_stb_event_days', true);
+        $schedule = get_post_meta($course_id, '_stb_event_schedule', true);
+        $is_presencial = false;
+        $tags = wp_get_post_terms($course_id, 'course-tag');
+        if (!empty($tags) && !is_wp_error($tags)) {
+            foreach ($tags as $t) {
+                if (strtolower($t->slug) === 'presencial' || strtolower($t->name) === 'presencial') {
+                    $is_presencial = true;
+                    break;
+                }
+            }
+        }
+        if ($location || $days || $schedule) $is_presencial = true;
+        if (!$is_presencial) return;
+
+        echo '<div style="margin: 10px 0; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; background: rgba(84, 180, 53, 0.15); border: 1px solid rgba(84, 180, 53, 0.35); color: #6fcc4b; font-size: 12px; font-weight: 600;">
+            <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#54B435;"></span>
+            📍 Modalidad Presencial
+        </div>';
+    }
+
+    /**
+     * Renderizar tarjeta destacada de evento en plantilla de Tutor LMS (Fallback)
+     */
+    public function render_tutor_single_course_event_card() {
+        $course_id = get_the_ID();
+        if (!$course_id) return;
+        $location = get_post_meta($course_id, '_stb_event_location', true);
+        $days = get_post_meta($course_id, '_stb_event_days', true);
+        $schedule = get_post_meta($course_id, '_stb_event_schedule', true);
+        $date = get_post_meta($course_id, '_stb_event_date', true);
+
+        $is_presencial = false;
+        $tags = wp_get_post_terms($course_id, 'course-tag');
+        if (!empty($tags) && !is_wp_error($tags)) {
+            foreach ($tags as $t) {
+                if (strtolower($t->slug) === 'presencial' || strtolower($t->name) === 'presencial') {
+                    $is_presencial = true;
+                    break;
+                }
+            }
+        }
+        if ($location || $days || $schedule) $is_presencial = true;
+        if (!$is_presencial || (!$location && !$days && !$schedule)) return;
+
+        ?>
+        <div class="tutor-single-course-segment stb-native-event-details-card" style="margin-top: 24px; padding: 24px; border-radius: 16px; background: #0f172a; border: 1px solid rgba(84, 180, 53, 0.3); color: #fff;">
+            <h4 style="margin: 0 0 16px; font-size: 18px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+                <span style="color: #54B435;">📍</span> Modalidad Presencial, Días y Horarios
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                <?php if ($location) : ?>
+                <div style="padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="font-size: 11px; text-transform: uppercase; color: #6fcc4b; font-weight: 700; margin-bottom: 4px;">¿Dónde se hará el curso?</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #fff;"><?php echo esc_html($location); ?></div>
+                </div>
+                <?php endif; ?>
+                <?php if ($days) : ?>
+                <div style="padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: 700; margin-bottom: 4px;">Días en los que se hará</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #fff;"><?php echo esc_html($days); ?></div>
+                    <?php if ($date) : ?>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Inicio: <?php echo esc_html(date_i18n('d M Y', strtotime($date))); ?></div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                <?php if ($schedule) : ?>
+                <div style="padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="font-size: 11px; text-transform: uppercase; color: #a3e635; font-weight: 700; margin-bottom: 4px;">Horario específico</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #a3e635; font-family: monospace;"><?php echo esc_html($schedule); ?></div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php
     }
 }
 
