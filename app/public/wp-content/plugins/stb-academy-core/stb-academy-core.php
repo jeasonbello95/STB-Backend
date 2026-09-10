@@ -83,6 +83,20 @@ class STB_Academy_Core {
 
         // Corrección de publicación de cursos en Tutor LMS (evitar que se queden en estado 'future'/programado por desfase horario GMT)
         add_filter('wp_insert_post_data', array($this, 'fix_course_builder_publish_status'), 20, 2);
+
+        // Meta box para cursos presenciales y fechas de eventos
+        add_action('add_meta_boxes', array($this, 'register_course_event_meta_box'));
+        add_action('save_post_courses', array($this, 'save_course_event_meta'));
+
+        // Integración de bloque nativo de Modalidad Presencial y Horario en Tutor Course Builder
+        add_action('tutor_course_builder_footer', array($this, 'inject_course_builder_event_assets'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_course_builder_event_assets_frontend'), 25);
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_course_builder_event_assets_backend'), 25);
+        add_filter('tutor_course_builder_localized_data', array($this, 'localize_course_event_data'));
+        add_filter('tutor_course_details_response', array($this, 'filter_course_details_response'));
+        add_action('tutor_after_prepare_update_post_meta', array($this, 'save_tutor_course_event_meta'), 10, 2);
+        add_action('wp_ajax_stb_get_builder_event_details', array($this, 'ajax_get_builder_event_details'));
+        add_action('wp_ajax_stb_save_builder_event_details', array($this, 'ajax_save_builder_event_details'));
     }
 
     /**
@@ -503,6 +517,12 @@ class STB_Academy_Core {
         register_rest_route('stb/v1', '/courses', array(
             'methods'             => 'GET',
             'callback'            => array($this, 'rest_get_courses'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route('stb/v1', '/events', array(
+            'methods'             => 'GET',
+            'callback'            => array($this, 'rest_get_events'),
             'permission_callback' => '__return_true',
         ));
 
@@ -1068,6 +1088,44 @@ class STB_Academy_Core {
                 $rating_avg = $rating && isset($rating->rating_avg) ? (float)$rating->rating_avg : 4.9;
                 $rating_count = $rating && isset($rating->rating_count) ? (int)$rating->rating_count : 18;
 
+                // Etiquetas (course-tag) de Tutor LMS
+                $tags_terms = wp_get_post_terms($post_id, 'course-tag');
+                $tags_list = array();
+                $is_presencial = false;
+                if (!empty($tags_terms) && !is_wp_error($tags_terms)) {
+                    foreach ($tags_terms as $tt) {
+                        $tags_list[] = $tt->name;
+                        if (strtolower($tt->slug) === 'presencial' || strtolower($tt->name) === 'presencial') {
+                            $is_presencial = true;
+                        }
+                    }
+                }
+
+                // Fecha y ubicación de evento (para cursos presenciales o programados)
+                $event_date = get_post_meta($post_id, '_stb_event_date', true);
+                if (empty($event_date)) {
+                    $event_date = get_post_meta($post_id, '_event_date', true);
+                }
+                if (empty($event_date)) {
+                    $course_settings = get_post_meta($post_id, '_tutor_course_settings', true);
+                    if (is_array($course_settings) && !empty($course_settings['enrollment_starts_at'])) {
+                        $event_date = substr($course_settings['enrollment_starts_at'], 0, 10);
+                    }
+                }
+                if (empty($event_date)) {
+                    $event_date = get_the_date('Y-m-d', $post_id);
+                }
+
+                $event_location = get_post_meta($post_id, '_stb_event_location', true);
+                if (empty($event_location)) {
+                    $event_location = 'CC La Redoma de los Robles, Local 50 — Porlamar, Nueva Esparta';
+                }
+
+                $event_days = get_post_meta($post_id, '_stb_event_days', true);
+                $event_schedule = get_post_meta($post_id, '_stb_event_schedule', true);
+
+                $primary_tag = $is_presencial ? 'Presencial' : (!empty($tags_list) ? $tags_list[0] : 'Online');
+
                 $courses[] = array(
                     'id'                => (string)$post_id,
                     'title'             => html_entity_decode(get_the_title()),
@@ -1076,7 +1134,14 @@ class STB_Academy_Core {
                     'price'             => $price_formatted,
                     'price_raw'         => $price_number,
                     'is_free'           => $is_free,
-                    'tag'               => 'Tutor LMS',
+                    'tag'               => $primary_tag,
+                    'tags'              => $tags_list,
+                    'is_presencial'     => $is_presencial,
+                    'date'              => $event_date,
+                    'event_date'        => $event_date,
+                    'location'          => $event_location,
+                    'days'              => $event_days,
+                    'schedule'          => $event_schedule,
                     'image'             => $image_url,
                     'category'          => $primary_category,
                     'categories'        => $categories_list,
@@ -1095,6 +1160,139 @@ class STB_Academy_Core {
         }
 
         return rest_ensure_response($courses);
+    }
+
+    /**
+     * Devuelve exclusivamente los cursos que tienen la etiqueta 'presencial'
+     * formateados para el calendario interactivo y la vista de eventos
+     */
+    public function rest_get_events($request) {
+        $args = array(
+            'post_type'      => 'courses',
+            'post_status'    => 'publish',
+            'posts_per_page' => 100,
+            'orderby'        => 'date',
+            'order'          => 'ASC',
+        );
+
+        $query = new WP_Query($args);
+        $events = array();
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+
+                // Comprobar si tiene la etiqueta 'presencial'
+                $tags_terms = wp_get_post_terms($post_id, 'course-tag');
+                $is_presencial = false;
+                $tags_list = array();
+                if (!empty($tags_terms) && !is_wp_error($tags_terms)) {
+                    foreach ($tags_terms as $tt) {
+                        $tags_list[] = $tt->name;
+                        if (strtolower($tt->slug) === 'presencial' || strtolower($tt->name) === 'presencial') {
+                            $is_presencial = true;
+                        }
+                    }
+                }
+
+                if (!$is_presencial) {
+                    continue;
+                }
+
+                // Precio en Tutor LMS
+                $price_type = get_post_meta($post_id, '_tutor_course_price_type', true);
+                $is_free = ($price_type === 'free');
+                $price_val = get_post_meta($post_id, '_tutor_course_price', true);
+                $sale_price_val = get_post_meta($post_id, '_tutor_course_sale_price', true);
+                $price_formatted = 'Gratis';
+                $price_number = 0;
+                if (!$is_free && (!empty($price_val) || !empty($sale_price_val))) {
+                    $active_price = !empty($sale_price_val) ? (float)$sale_price_val : (float)$price_val;
+                    $price_number = $active_price;
+                    $price_formatted = '$' . number_format($active_price, 2, ',', '.');
+                } elseif (!$is_free && function_exists('tutor_utils')) {
+                    $tutor_price = tutor_utils()->get_course_price($post_id);
+                    if (!empty($tutor_price)) {
+                        $price_formatted = wp_strip_all_tags($tutor_price);
+                    }
+                }
+
+                // Imagen
+                $image_url = get_the_post_thumbnail_url($post_id, 'large');
+                if (!$image_url) {
+                    $image_url = 'https://images.unsplash.com/photo-1591115765373-5207764f72e7?auto=format&fit=crop&w=1200&q=80';
+                }
+
+                // Fecha del evento presencial
+                $event_date = get_post_meta($post_id, '_stb_event_date', true);
+                if (empty($event_date)) {
+                    $event_date = get_post_meta($post_id, '_event_date', true);
+                }
+                if (empty($event_date)) {
+                    $course_settings = get_post_meta($post_id, '_tutor_course_settings', true);
+                    if (is_array($course_settings) && !empty($course_settings['enrollment_starts_at'])) {
+                        $event_date = substr($course_settings['enrollment_starts_at'], 0, 10);
+                    }
+                }
+                if (empty($event_date)) {
+                    $event_date = get_the_date('Y-m-d', $post_id);
+                }
+
+                // Ubicación
+                $event_location = get_post_meta($post_id, '_stb_event_location', true);
+                if (empty($event_location)) {
+                    $event_location = 'CC La Redoma de los Robles, Local 50 — Porlamar, Nueva Esparta';
+                }
+
+                // Duración y nivel
+                $duration_meta = get_post_meta($post_id, '_tutor_course_duration', true);
+                $duration = 'Presencial';
+                if (is_array($duration_meta)) {
+                    $h = isset($duration_meta['hours']) ? (int)$duration_meta['hours'] : 0;
+                    $m = isset($duration_meta['minutes']) ? (int)$duration_meta['minutes'] : 0;
+                    if ($h > 0 || $m > 0) {
+                        $duration = ($h > 0 ? "{$h}h " : '') . ($m > 0 ? "{$m}m" : '');
+                    }
+                }
+
+                $level_raw = get_post_meta($post_id, '_tutor_course_level', true);
+                $levels_map = array(
+                    'all_levels'   => 'Todos los niveles',
+                    'beginner'     => 'Principiante',
+                    'intermediate' => 'Intermedio',
+                    'expert'       => 'Avanzado',
+                );
+                $level = isset($levels_map[$level_raw]) ? $levels_map[$level_raw] : 'Todos los niveles';
+
+                $event_days = get_post_meta($post_id, '_stb_event_days', true);
+                $event_schedule = get_post_meta($post_id, '_stb_event_schedule', true);
+
+                $events[] = array(
+                    'id'           => (string)$post_id,
+                    'course_id'    => (string)$post_id,
+                    'title'        => html_entity_decode(get_the_title()),
+                    'slug'         => get_post_field('post_name', $post_id),
+                    'date'         => $event_date,
+                    'description'  => wp_strip_all_tags(get_the_excerpt() ?: get_the_content()),
+                    'location'     => $event_location,
+                    'days'         => $event_days,
+                    'schedule'     => $event_schedule,
+                    'price'        => $price_formatted,
+                    'price_raw'    => $price_number,
+                    'is_free'      => $is_free,
+                    'image'        => $image_url,
+                    'permalink'    => get_permalink($post_id),
+                    'tag'          => 'Presencial',
+                    'tags'         => $tags_list,
+                    'duration'     => !empty($event_schedule) ? $event_schedule : $duration,
+                    'level'        => $level,
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        return rest_ensure_response($events);
     }
 
     /**
@@ -1577,6 +1775,317 @@ class STB_Academy_Core {
             }
         }
         return $data;
+    }
+
+    /**
+     * Registrar Meta Box para eventos presenciales en Cursos
+     */
+    public function register_course_event_meta_box() {
+        add_meta_box(
+            'stb_course_event_settings',
+            'STB Academy — Configuración Presencial / Evento',
+            array($this, 'render_course_event_meta_box'),
+            'courses',
+            'side',
+            'high'
+        );
+    }
+
+    public function render_course_event_meta_box($post) {
+        wp_nonce_field('stb_save_course_event_meta', 'stb_course_event_nonce');
+        $event_date = get_post_meta($post->ID, '_stb_event_date', true);
+        $event_location = get_post_meta($post->ID, '_stb_event_location', true);
+        $event_days = get_post_meta($post->ID, '_stb_event_days', true);
+        $event_schedule = get_post_meta($post->ID, '_stb_event_schedule', true);
+        ?>
+        <p style="margin-bottom:12px;">
+            <label for="stb_event_location" style="font-weight:600;display:block;margin-bottom:4px;">Ubicación / Dónde se hará el curso:</label>
+            <input type="text" id="stb_event_location" name="stb_event_location" value="<?php echo esc_attr($event_location); ?>" placeholder="CC La Redoma de los Robles, Local 50 — Porlamar" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc;" />
+            <span style="color:#666;font-size:11px;display:block;margin-top:3px;">Sede, aula o dirección física de las clases.</span>
+        </p>
+        <p style="margin-bottom:12px;">
+            <label for="stb_event_days" style="font-weight:600;display:block;margin-bottom:4px;">Días en los que se hará:</label>
+            <input type="text" id="stb_event_days" name="stb_event_days" value="<?php echo esc_attr($event_days); ?>" placeholder="Sábados o Lunes a Viernes" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc;" />
+            <span style="color:#666;font-size:11px;display:block;margin-top:3px;">ej. Sábados, Lunes a Viernes, etc.</span>
+        </p>
+        <p style="margin-bottom:12px;">
+            <label for="stb_event_date" style="font-weight:600;display:block;margin-bottom:4px;">Fecha de Inicio (para el Calendario):</label>
+            <input type="date" id="stb_event_date" name="stb_event_date" value="<?php echo esc_attr($event_date); ?>" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc;" />
+            <span style="color:#666;font-size:11px;display:block;margin-top:3px;">Si se deja vacío, tomará la fecha de publicación del curso.</span>
+        </p>
+        <p style="margin-bottom:6px;">
+            <label for="stb_event_schedule" style="font-weight:600;display:block;margin-bottom:4px;">Horario específico:</label>
+            <input type="text" id="stb_event_schedule" name="stb_event_schedule" value="<?php echo esc_attr($event_schedule); ?>" placeholder="09:00 AM – 01:00 PM" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ccc;" />
+            <span style="color:#666;font-size:11px;display:block;margin-top:3px;">Rango horario en que se imparten las clases.</span>
+        </p>
+        <?php
+    }
+
+    public function save_course_event_meta($post_id) {
+        if (!isset($_POST['stb_course_event_nonce']) || !wp_verify_nonce($_POST['stb_course_event_nonce'], 'stb_save_course_event_meta')) {
+            return;
+        }
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+        if (isset($_POST['stb_event_date'])) {
+            update_post_meta($post_id, '_stb_event_date', sanitize_text_field($_POST['stb_event_date']));
+        }
+        if (isset($_POST['stb_event_location'])) {
+            update_post_meta($post_id, '_stb_event_location', sanitize_text_field($_POST['stb_event_location']));
+        }
+        if (isset($_POST['stb_event_days'])) {
+            update_post_meta($post_id, '_stb_event_days', sanitize_text_field($_POST['stb_event_days']));
+        }
+        if (isset($_POST['stb_event_schedule'])) {
+            update_post_meta($post_id, '_stb_event_schedule', sanitize_text_field($_POST['stb_event_schedule']));
+        }
+    }
+
+    /**
+     * Comprueba si la vista actual es el Course Builder de Tutor LMS
+     */
+    public function is_tutor_course_builder() {
+        global $pagenow;
+        $is_backend = is_admin() && 'admin.php' === $pagenow && 'create-course' === (isset($_GET['page']) ? $_GET['page'] : '');
+        $is_frontend = function_exists('tutor_utils') && tutor_utils()->is_tutor_frontend_dashboard('create-course');
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $is_uri = (strpos($uri, 'create-course') !== false);
+        return $is_backend || $is_frontend || $is_uri;
+    }
+
+    public function enqueue_course_builder_event_assets_frontend() {
+        if ($this->is_tutor_course_builder()) {
+            $this->enqueue_course_builder_event_assets();
+        }
+    }
+
+    public function enqueue_course_builder_event_assets_backend($hook = '') {
+        if ($this->is_tutor_course_builder()) {
+            $this->enqueue_course_builder_event_assets();
+        }
+    }
+
+    public function inject_course_builder_event_assets() {
+        $this->enqueue_course_builder_event_assets();
+    }
+
+    public function enqueue_course_builder_event_assets() {
+        static $enqueued = false;
+        if ($enqueued) {
+            return;
+        }
+        $enqueued = true;
+
+        wp_enqueue_style(
+            'stb-course-builder-events',
+            STB_PLUGIN_URL . 'assets/css/stb-course-builder-events.css',
+            array(),
+            STB_PLUGIN_VERSION
+        );
+
+        wp_enqueue_script(
+            'stb-course-builder-events',
+            STB_PLUGIN_URL . 'assets/js/stb-course-builder-events.js',
+            array('jquery'),
+            STB_PLUGIN_VERSION,
+            true
+        );
+
+        $course_id = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
+        $location = $course_id ? get_post_meta($course_id, '_stb_event_location', true) : '';
+        $days = $course_id ? get_post_meta($course_id, '_stb_event_days', true) : '';
+        $date = $course_id ? get_post_meta($course_id, '_stb_event_date', true) : '';
+        $schedule = $course_id ? get_post_meta($course_id, '_stb_event_schedule', true) : '';
+        $is_presencial = false;
+        if ($course_id) {
+            $terms = wp_get_post_terms($course_id, 'course-tag');
+            if (!empty($terms) && !is_wp_error($terms)) {
+                foreach ($terms as $t) {
+                    if (strtolower($t->slug) === 'presencial' || strtolower($t->name) === 'presencial') {
+                        $is_presencial = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        wp_localize_script('stb-course-builder-events', 'stbCourseBuilderData', array(
+            'ajax_url'      => admin_url('admin-ajax.php'),
+            'nonce'         => wp_create_nonce('stb_save_course_event_meta'),
+            'course_id'     => $course_id,
+            'location'      => $location,
+            'days'          => $days,
+            'date'          => $date,
+            'schedule'      => $schedule,
+            'is_presencial' => $is_presencial,
+        ));
+    }
+
+    /**
+     * Localizar datos del evento en _tutorobject de Course Builder
+     */
+    public function localize_course_event_data($data) {
+        $course_id = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
+        if (!$course_id && isset($_POST['course_id'])) {
+            $course_id = (int)$_POST['course_id'];
+        }
+
+        $location = $course_id ? get_post_meta($course_id, '_stb_event_location', true) : '';
+        $days = $course_id ? get_post_meta($course_id, '_stb_event_days', true) : '';
+        $date = $course_id ? get_post_meta($course_id, '_stb_event_date', true) : '';
+        $schedule = $course_id ? get_post_meta($course_id, '_stb_event_schedule', true) : '';
+        $is_presencial = false;
+        if ($course_id) {
+            $terms = wp_get_post_terms($course_id, 'course-tag');
+            if (!empty($terms) && !is_wp_error($terms)) {
+                foreach ($terms as $t) {
+                    if (strtolower($t->slug) === 'presencial' || strtolower($t->name) === 'presencial') {
+                        $is_presencial = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        $data['stb_event_data'] = array(
+            'course_id'     => $course_id,
+            'location'      => $location,
+            'days'          => $days,
+            'date'          => $date,
+            'schedule'      => $schedule,
+            'is_presencial' => $is_presencial,
+        );
+
+        return $data;
+    }
+
+    /**
+     * Añadir datos del evento a la respuesta de tutor_course_details
+     */
+    public function filter_course_details_response($data) {
+        $course_id = isset($data['ID']) ? (int)$data['ID'] : 0;
+        if (!$course_id && isset($_GET['course_id'])) {
+            $course_id = (int)$_GET['course_id'];
+        }
+        if ($course_id) {
+            $data['stb_event_location'] = get_post_meta($course_id, '_stb_event_location', true);
+            $data['stb_event_days'] = get_post_meta($course_id, '_stb_event_days', true);
+            $data['stb_event_date'] = get_post_meta($course_id, '_stb_event_date', true);
+            $data['stb_event_schedule'] = get_post_meta($course_id, '_stb_event_schedule', true);
+
+            $terms = wp_get_post_terms($course_id, 'course-tag');
+            $is_presencial = false;
+            if (!empty($terms) && !is_wp_error($terms)) {
+                foreach ($terms as $t) {
+                    if (strtolower($t->slug) === 'presencial' || strtolower($t->name) === 'presencial') {
+                        $is_presencial = true;
+                        break;
+                    }
+                }
+            }
+            $data['stb_is_presencial'] = $is_presencial;
+        }
+        return $data;
+    }
+
+    /**
+     * Guardar datos cuando Tutor LMS actualiza el curso (tutor_update_course)
+     */
+    public function save_tutor_course_event_meta($post_id, $params) {
+        if (isset($params['stb_event_location'])) {
+            update_post_meta($post_id, '_stb_event_location', sanitize_text_field($params['stb_event_location']));
+        }
+        if (isset($params['stb_event_days'])) {
+            update_post_meta($post_id, '_stb_event_days', sanitize_text_field($params['stb_event_days']));
+        }
+        if (isset($params['stb_event_date'])) {
+            update_post_meta($post_id, '_stb_event_date', sanitize_text_field($params['stb_event_date']));
+        }
+        if (isset($params['stb_event_schedule'])) {
+            update_post_meta($post_id, '_stb_event_schedule', sanitize_text_field($params['stb_event_schedule']));
+        }
+        if (isset($params['stb_is_presencial'])) {
+            $is_p = !empty($params['stb_is_presencial']) && $params['stb_is_presencial'] !== '0' && $params['stb_is_presencial'] !== 'false';
+            if ($is_p) {
+                wp_set_post_terms($post_id, array('presencial'), 'course-tag', true);
+            }
+        }
+    }
+
+    /**
+     * AJAX: Obtener detalles del evento para el bloque del Course Builder
+     */
+    public function ajax_get_builder_event_details() {
+        $course_id = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
+        if (!$course_id) {
+            wp_send_json_error(array('message' => 'ID de curso inválido'));
+        }
+
+        $terms = wp_get_post_terms($course_id, 'course-tag');
+        $is_presencial = false;
+        if (!empty($terms) && !is_wp_error($terms)) {
+            foreach ($terms as $t) {
+                if (strtolower($t->slug) === 'presencial' || strtolower($t->name) === 'presencial') {
+                    $is_presencial = true;
+                    break;
+                }
+            }
+        }
+
+        wp_send_json_success(array(
+            'course_id'     => $course_id,
+            'location'      => get_post_meta($course_id, '_stb_event_location', true),
+            'days'          => get_post_meta($course_id, '_stb_event_days', true),
+            'date'          => get_post_meta($course_id, '_stb_event_date', true),
+            'schedule'      => get_post_meta($course_id, '_stb_event_schedule', true),
+            'is_presencial' => $is_presencial,
+        ));
+    }
+
+    /**
+     * AJAX: Guardar detalles del evento desde el bloque del Course Builder
+     */
+    public function ajax_save_builder_event_details() {
+        $course_id = isset($_POST['course_id']) ? (int)$_POST['course_id'] : 0;
+        if (!$course_id || !current_user_can('edit_post', $course_id)) {
+            wp_send_json_error(array('message' => 'No tienes permisos para editar este curso.'));
+        }
+
+        if (isset($_POST['location'])) {
+            update_post_meta($course_id, '_stb_event_location', sanitize_text_field($_POST['location']));
+        }
+        if (isset($_POST['days'])) {
+            update_post_meta($course_id, '_stb_event_days', sanitize_text_field($_POST['days']));
+        }
+        if (isset($_POST['date'])) {
+            update_post_meta($course_id, '_stb_event_date', sanitize_text_field($_POST['date']));
+        }
+        if (isset($_POST['schedule'])) {
+            update_post_meta($course_id, '_stb_event_schedule', sanitize_text_field($_POST['schedule']));
+        }
+        if (isset($_POST['is_presencial'])) {
+            $is_presencial = !empty($_POST['is_presencial']) && $_POST['is_presencial'] !== '0' && $_POST['is_presencial'] !== 'false';
+            if ($is_presencial) {
+                wp_set_post_terms($course_id, array('presencial'), 'course-tag', true);
+            } else {
+                wp_remove_object_terms($course_id, 'presencial', 'course-tag');
+            }
+        }
+
+        wp_send_json_success(array(
+            'message' => 'Detalles presenciales guardados correctamente.',
+            'data'    => array(
+                'location'      => get_post_meta($course_id, '_stb_event_location', true),
+                'days'          => get_post_meta($course_id, '_stb_event_days', true),
+                'date'          => get_post_meta($course_id, '_stb_event_date', true),
+                'schedule'      => get_post_meta($course_id, '_stb_event_schedule', true),
+                'is_presencial' => has_term('presencial', 'course-tag', $course_id),
+            )
+        ));
     }
 }
 

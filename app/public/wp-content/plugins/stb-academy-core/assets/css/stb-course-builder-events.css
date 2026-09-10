@@ -1,0 +1,371 @@
+/* ==========================================================================
+   STB Academy - Course Builder Event / Presencial Block Styles
+   Diseñado específicamente para integrarse como un bloque nativo en
+   Tutor LMS Course Builder (#/basics) tanto en Frontend como en WP Admin.
+   ========================================================================== */
+
+/* Bloque contenedor principal */
+#stb-course-builder-event-card {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+    margin-bottom: 24px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    transition: all 0.2s ease;
+}
+
+/* Encabezado del bloque */
+#stb-course-builder-event-card .stb-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    gap: 16px;
+}
+
+#stb-course-builder-event-card .stb-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+#stb-course-builder-event-card .stb-header-icon-wrap {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+#stb-course-builder-event-card .stb-card-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+#stb-course-builder-event-card .stb-card-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+#stb-course-builder-event-card .stb-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#stb-course-builder-event-card .stb-brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #e6f9ed;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+#stb-course-builder-event-card .stb-save-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: opacity 0.3s ease;
+}
+
+#stb-course-builder-event-card .stb-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    display: inline-block;
+}
+
+#stb-course-builder-event-card .stb-save-status.stb-status-saving .stb-status-dot {
+    background-color: #f59e0b;
+    animation: stb-pulse 1s infinite alternate;
+}
+
+#stb-course-builder-event-card .stb-save-status.stb-status-error .stb-status-dot {
+    background-color: #ef4444;
+}
+
+@keyframes stb-pulse {
+    0% { opacity: 0.4; transform: scale(0.85); }
+    100% { opacity: 1; transform: scale(1.15); }
+}
+
+/* Cuerpo del bloque */
+#stb-course-builder-event-card .stb-card-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Fila del interruptor / Toggle switch */
+#stb-course-builder-event-card .stb-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    gap: 16px;
+}
+
+#stb-course-builder-event-card .stb-switch-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#stb-course-builder-event-card .stb-switch-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+#stb-course-builder-event-card .stb-switch-desc {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+/* Switch Toggle Slider */
+#stb-course-builder-event-card .stb-switch-label {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+#stb-course-builder-event-card .stb-switch-label input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+#stb-course-builder-event-card .stb-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: .3s;
+    border-radius: 26px;
+}
+
+#stb-course-builder-event-card .stb-switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+#stb-course-builder-event-card .stb-switch-label input:checked + .stb-switch-slider {
+    background-color: #10b981;
+}
+
+#stb-course-builder-event-card .stb-switch-label input:focus + .stb-switch-slider {
+    box-shadow: 0 0 1px #10b981;
+}
+
+#stb-course-builder-event-card .stb-switch-label input:checked + .stb-switch-slider:before {
+    transform: translateX(20px);
+}
+
+/* Campos del formulario */
+#stb-course-builder-event-card .stb-fields-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    transition: opacity 0.3s ease;
+}
+
+#stb-course-builder-event-card .stb-fields-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+#stb-course-builder-event-card .stb-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#stb-course-builder-event-card .stb-field-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+#stb-course-builder-event-card .stb-field-sublabel {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 4px;
+}
+
+#stb-course-builder-event-card .stb-field-icon {
+    color: #059669;
+    flex-shrink: 0;
+}
+
+#stb-course-builder-event-card .stb-text-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    color: #0f172a;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#stb-course-builder-event-card .stb-text-input:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+#stb-course-builder-event-card .stb-date-input {
+    max-width: 260px;
+    cursor: pointer;
+}
+
+#stb-course-builder-event-card .stb-field-help {
+    font-size: 11.5px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+/* Sugerencias rápidas (Chips) */
+#stb-course-builder-event-card .stb-chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+#stb-course-builder-event-card .stb-chips-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-right: 4px;
+}
+
+#stb-course-builder-event-card .stb-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    background-color: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+#stb-course-builder-event-card .stb-chip:hover {
+    background-color: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+#stb-course-builder-event-card .stb-chip.active {
+    background-color: #10b981;
+    color: #ffffff;
+    border-color: #10b981;
+}
+
+/* Footer de la tarjeta */
+#stb-course-builder-event-card .stb-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid #e2e8f0;
+    gap: 16px;
+}
+
+#stb-course-builder-event-card .stb-sync-notice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: #64748b;
+}
+
+#stb-course-builder-event-card .stb-sync-notice svg {
+    color: #10b981;
+    flex-shrink: 0;
+}
+
+#stb-course-builder-event-card .stb-btn-save {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    background-color: #10b981;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+#stb-course-builder-event-card .stb-btn-save:hover {
+    background-color: #059669;
+}
+
+#stb-course-builder-event-card .stb-btn-save:active {
+    transform: scale(0.98);
+}
