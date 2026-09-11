@@ -1377,6 +1377,7 @@ class STB_Academy_Core {
                 $pay = get_post_meta($post_id, '_stb_payment_method', true);
                 $ref = get_post_meta($post_id, '_stb_payment_reference', true);
                 $names = array(
+                    'cashea'       => 'Cashea (Cuotas sin interés)',
                     'pago_movil'   => 'Pago Móvil (Bs)',
                     'zelle'        => 'Zelle (USD)',
                     'efectivo'     => 'Efectivo en Sede',
