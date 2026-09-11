@@ -30,6 +30,9 @@ class STB_Academy_Core {
     private function __construct() {
         // Registrar ubicación de menú de WordPress para el Header
         add_action('init', array($this, 'register_nav_menus'));
+        add_action('init', array($this, 'register_event_registration_post_type'));
+        add_filter('manage_stb_registration_posts_columns', array($this, 'set_stb_registration_columns'));
+        add_action('manage_stb_registration_posts_custom_column', array($this, 'render_stb_registration_columns'), 10, 2);
 
         // Filtros para estilizar los enlaces del menú nativo wp_nav_menu()
         add_filter('nav_menu_link_attributes', array($this, 'style_nav_menu_links'), 10, 3);
@@ -527,6 +530,12 @@ class STB_Academy_Core {
         register_rest_route('stb/v1', '/events', array(
             'methods'             => 'GET',
             'callback'            => array($this, 'rest_get_events'),
+            'permission_callback' => '__return_true',
+        ));
+
+        register_rest_route('stb/v1', '/events/register', array(
+            'methods'             => 'POST',
+            'callback'            => array($this, 'rest_register_event'),
             'permission_callback' => '__return_true',
         ));
 
@@ -1297,6 +1306,206 @@ class STB_Academy_Core {
         }
 
         return rest_ensure_response($events);
+    }
+
+    /**
+     * Registra el tipo de contenido personalizado para inscripciones presenciales
+     */
+    public function register_event_registration_post_type() {
+        register_post_type('stb_registration', array(
+            'labels' => array(
+                'name'               => 'Inscripciones Presenciales',
+                'singular_name'      => 'Inscripción Presencial',
+                'menu_name'          => 'Inscripciones Presenciales',
+                'all_items'          => 'Inscripciones Presenciales',
+                'view_item'          => 'Ver Inscripción',
+                'search_items'       => 'Buscar Inscripciones',
+                'not_found'          => 'No hay inscripciones registradas',
+            ),
+            'public'              => false,
+            'show_ui'             => true,
+            'show_in_menu'        => 'tutor',
+            'capability_type'     => 'post',
+            'hierarchical'        => false,
+            'supports'            => array('title', 'editor', 'custom-fields'),
+            'has_archive'         => false,
+            'rewrite'             => false,
+            'query_var'           => false,
+        ));
+    }
+
+    /**
+     * Columnas personalizadas en el panel de WordPress para inscripciones presenciales
+     */
+    public function set_stb_registration_columns($columns) {
+        $new_columns = array(
+            'cb'          => $columns['cb'],
+            'title'       => 'Cursante',
+            'reg_code'    => 'Código',
+            'student_dni' => 'C.I. / DNI',
+            'student_phone' => 'Teléfono / WhatsApp',
+            'course'      => 'Curso Presencial',
+            'payment'     => 'Método de Pago',
+            'rep_info'    => 'Representante',
+            'date'        => 'Fecha de Registro',
+        );
+        return $new_columns;
+    }
+
+    public function render_stb_registration_columns($column, $post_id) {
+        switch ($column) {
+            case 'reg_code':
+                $code = get_post_meta($post_id, '_stb_reg_code', true);
+                echo '<strong><code>' . esc_html($code ?: '-' . $post_id) . '</code></strong>';
+                break;
+            case 'student_dni':
+                echo esc_html(get_post_meta($post_id, '_stb_student_dni', true) ?: '-');
+                break;
+            case 'student_phone':
+                $phone = get_post_meta($post_id, '_stb_student_phone', true);
+                if ($phone) {
+                    $clean_phone = preg_replace('/[^0-9]/', '', $phone);
+                    echo '<a href="https://wa.me/' . esc_attr($clean_phone) . '" target="_blank" style="color:#54b435;font-weight:600;">' . esc_html($phone) . '</a>';
+                } else {
+                    echo '-';
+                }
+                break;
+            case 'course':
+                echo esc_html(get_post_meta($post_id, '_stb_course_title', true) ?: '-');
+                break;
+            case 'payment':
+                $pay = get_post_meta($post_id, '_stb_payment_method', true);
+                $ref = get_post_meta($post_id, '_stb_payment_reference', true);
+                $names = array(
+                    'pago_movil'   => 'Pago Móvil (Bs)',
+                    'zelle'        => 'Zelle (USD)',
+                    'efectivo'     => 'Efectivo en Sede',
+                    'transferencia'=> 'Transferencia Bancaria',
+                    'usdt'         => 'Binance Pay / USDT',
+                    'gratis'       => 'Beca / Gratuito',
+                );
+                echo '<span>' . esc_html($names[$pay] ?? $pay) . '</span>';
+                if (!empty($ref)) {
+                    echo '<br><small style="color:#94a3b8;">Ref: ' . esc_html($ref) . '</small>';
+                }
+                break;
+            case 'rep_info':
+                $is_minor = get_post_meta($post_id, '_stb_is_minor', true);
+                if ($is_minor === '1') {
+                    $rep_name = get_post_meta($post_id, '_stb_rep_name', true);
+                    $rep_rel = get_post_meta($post_id, '_stb_rep_relation', true);
+                    echo '<span style="color:#f59e0b;font-size:11px;font-weight:bold;">[Menor de Edad]</span><br>';
+                    echo esc_html($rep_name . ($rep_rel ? " ({$rep_rel})" : ''));
+                } else {
+                    echo '<span style="color:#64748b;font-size:11px;">Mayor de edad</span>';
+                }
+                break;
+        }
+    }
+
+    /**
+     * Endpoint REST para procesar la Inscripción Inmediata a cursos presenciales
+     */
+    public function rest_register_event($request) {
+        $params = $request->get_json_params();
+        if (empty($params)) {
+            $params = $request->get_params();
+        }
+
+        $course_id     = isset($params['course_id']) ? sanitize_text_field($params['course_id']) : '';
+        $course_title  = isset($params['course_title']) ? sanitize_text_field($params['course_title']) : '';
+        $student_name  = isset($params['student_name']) ? sanitize_text_field($params['student_name']) : '';
+        $student_dni   = isset($params['student_dni']) ? sanitize_text_field($params['student_dni']) : '';
+        $student_email = isset($params['student_email']) ? sanitize_email($params['student_email']) : '';
+        $student_phone = isset($params['student_phone']) ? sanitize_text_field($params['student_phone']) : '';
+        $is_minor      = !empty($params['is_minor']);
+        $rep_name      = isset($params['representative_name']) ? sanitize_text_field($params['representative_name']) : '';
+        $rep_dni       = isset($params['representative_dni']) ? sanitize_text_field($params['representative_dni']) : '';
+        $rep_phone     = isset($params['representative_phone']) ? sanitize_text_field($params['representative_phone']) : '';
+        $rep_relation  = isset($params['representative_relation']) ? sanitize_text_field($params['representative_relation']) : '';
+        $payment_method= isset($params['payment_method']) ? sanitize_text_field($params['payment_method']) : 'pago_movil';
+        $payment_ref   = isset($params['payment_reference']) ? sanitize_text_field($params['payment_reference']) : '';
+        $exp_level     = isset($params['experience_level']) ? sanitize_text_field($params['experience_level']) : 'Principiante';
+        $has_laptop    = isset($params['has_laptop']) ? sanitize_text_field($params['has_laptop']) : 'si';
+        $notes         = isset($params['notes']) ? sanitize_textarea_field($params['notes']) : '';
+
+        // Validaciones obligatorias
+        if (empty($student_name) || empty($student_email) || empty($student_phone)) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Por favor completa los campos requeridos: Nombre completo, Correo electrónico y Teléfono.',
+            ), 400);
+        }
+
+        if ($is_minor && (empty($rep_name) || empty($rep_phone))) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'message' => 'Para estudiantes menores de edad es obligatorio indicar el Nombre y Teléfono del representante legal.',
+            ), 400);
+        }
+
+        // Generar código único de registro STB
+        $reg_code = 'STB-PRES-' . strtoupper(substr(md5(uniqid((string)mt_rand(), true)), 0, 6));
+
+        // Registrar post en WordPress
+        $post_title = $student_name . ' - ' . ($course_title ?: 'Curso Presencial') . ' [' . $reg_code . ']';
+        $post_id = wp_insert_post(array(
+            'post_type'   => 'stb_registration',
+            'post_title'  => $post_title,
+            'post_status' => 'publish',
+            'post_content'=> "Inscripción presencial para: {$course_title}\nCódigo: {$reg_code}\nCursante: {$student_name}\nCédula: {$student_dni}\nEmail: {$student_email}\nTeléfono: {$student_phone}\nMétodo de pago: {$payment_method}\nReferencia: {$payment_ref}",
+        ));
+
+        if (!is_wp_error($post_id) && $post_id) {
+            update_post_meta($post_id, '_stb_reg_code', $reg_code);
+            update_post_meta($post_id, '_stb_course_id', $course_id);
+            update_post_meta($post_id, '_stb_course_title', $course_title);
+            update_post_meta($post_id, '_stb_student_name', $student_name);
+            update_post_meta($post_id, '_stb_student_dni', $student_dni);
+            update_post_meta($post_id, '_stb_student_email', $student_email);
+            update_post_meta($post_id, '_stb_student_phone', $student_phone);
+            update_post_meta($post_id, '_stb_is_minor', $is_minor ? '1' : '0');
+            update_post_meta($post_id, '_stb_rep_name', $rep_name);
+            update_post_meta($post_id, '_stb_rep_dni', $rep_dni);
+            update_post_meta($post_id, '_stb_rep_phone', $rep_phone);
+            update_post_meta($post_id, '_stb_rep_relation', $rep_relation);
+            update_post_meta($post_id, '_stb_payment_method', $payment_method);
+            update_post_meta($post_id, '_stb_payment_reference', $payment_ref);
+            update_post_meta($post_id, '_stb_experience_level', $exp_level);
+            update_post_meta($post_id, '_stb_has_laptop', $has_laptop);
+            update_post_meta($post_id, '_stb_notes', $notes);
+            update_post_meta($post_id, '_stb_registered_at', current_time('mysql'));
+        }
+
+        // Notificación al correo del administrador
+        $admin_email = get_option('admin_email');
+        if (!empty($admin_email)) {
+            $admin_subject = "Nueva Inscripción Presencial [{$reg_code}] - {$student_name}";
+            $admin_msg = "Se ha registrado una nueva inscripción presencial inmediata en STB Academy:\n\n" .
+                "Código: {$reg_code}\n" .
+                "Curso: {$course_title}\n" .
+                "Estudiante: {$student_name}\n" .
+                "Cédula / DNI: {$student_dni}\n" .
+                "Correo: {$student_email}\n" .
+                "Teléfono / WhatsApp: {$student_phone}\n" .
+                ($is_minor ? "Menor de edad: Sí\nRepresentante: {$rep_name} ({$rep_relation}) - C.I: {$rep_dni} - Tel: {$rep_phone}\n" : "Mayor de edad: Sí\n") .
+                "Método de Pago: {$payment_method}\n" .
+                (!empty($payment_ref) ? "Referencia: {$payment_ref}\n" : "") .
+                "Nivel de experiencia: {$exp_level}\n" .
+                "Lleva laptop propia: {$has_laptop}\n" .
+                (!empty($notes) ? "Notas: {$notes}\n" : "");
+
+            @wp_mail($admin_email, $admin_subject, $admin_msg);
+        }
+
+        return new WP_REST_Response(array(
+            'success'          => true,
+            'registration_code'=> $reg_code,
+            'message'          => '¡Inscripción registrada con éxito! Te esperamos en la sede presencial.',
+            'student_name'     => $student_name,
+            'course_title'     => $course_title,
+            'payment_method'   => $payment_method,
+        ), 200);
     }
 
     /**
